@@ -1,0 +1,21 @@
+# Scraping
+lightnovel-crawler
+beautifulsoup4
+requests
+
+# Proofreading & AI prompts (local, via Ollama)
+ollama
+
+# Voice / TTS
+kokoro
+soundfile
+
+# Video stitching
+moviepy
+
+# Higgsfield video generation API
+higgsfield-client
+
+# Podcast publishing
+internetarchive
+mutagen

@@ -1,0 +1,13 @@
+# Large output files — stored on Archive.org, not GitHub
+output/
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store
+
+# Secrets
+pipeline/config_secrets.py
+
+# Cron logs
+podcast/cron.log

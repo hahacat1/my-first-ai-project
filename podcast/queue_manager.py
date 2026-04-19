@@ -4,6 +4,7 @@ Saves state to podcast/publish_queue.json
 """
 
 import os
+import re
 import json
 from datetime import datetime, timezone
 
@@ -23,6 +24,31 @@ def _save(state: dict):
         json.dump(state, f, indent=2)
 
 
+def _extract_title_from_filename(mp3_filename: str) -> str | None:
+    """Extract title from 'Chapter NNN - <title>.mp3' filenames."""
+    m = re.match(r'Chapter \d+ - (.+)\.mp3$', mp3_filename)
+    if m:
+        return m.group(1)
+    return None
+
+
+def _read_chapter_title(voice_dir: str, mp3_filename: str) -> str | None:
+    """Get chapter title: from filename first, then fall back to reading the .txt file."""
+    title = _extract_title_from_filename(mp3_filename)
+    if title:
+        return title
+    # Fallback: read first line of matching proofread .txt
+    txt_name = mp3_filename.replace(".mp3", ".txt")
+    novel_slug = os.path.basename(os.path.dirname(os.path.abspath(voice_dir)))
+    proofread_path = os.path.join("output", novel_slug, "proofread", txt_name)
+    if os.path.exists(proofread_path):
+        with open(proofread_path, encoding="utf-8") as f:
+            first_line = f.readline().strip()
+            if first_line:
+                return first_line
+    return None
+
+
 def build_queue(voice_dir: str, novel_title: str):
     """
     Scan voice_dir for all chapter mp3s and build the publish queue.
@@ -33,7 +59,7 @@ def build_queue(voice_dir: str, novel_title: str):
 
     mp3s = sorted([
         f for f in os.listdir(voice_dir)
-        if f.endswith(".mp3") and f.startswith("chapter-")
+        if f.endswith(".mp3") and (f.startswith("chapter-") or f.startswith("Chapter "))
     ])
 
     new_queued = []
@@ -44,12 +70,15 @@ def build_queue(voice_dir: str, novel_title: str):
             continue
         if any(q["file"] == mp3 for q in state["queued"]):
             continue
-        chapter_num = int(mp3.replace("chapter-", "").replace(".mp3", ""))
+        m = re.match(r'[Cc]hapter[-_ ](\d+)', mp3)
+        chapter_num = int(m.group(1)) if m else ep_num
+        chapter_title = _read_chapter_title(voice_dir, mp3)
+        title = f"{novel_title} — {chapter_title}" if chapter_title else f"{novel_title} — Episode {ep_num} (Chapter {chapter_num})"
         new_queued.append({
             "file": mp3,
             "path": os.path.join(voice_dir, mp3),
             "episode": ep_num,
-            "title": f"{novel_title} — Episode {ep_num} (Chapter {chapter_num})",
+            "title": title,
             "queued_at": datetime.now(timezone.utc).isoformat(),
         })
         ep_num += 1
@@ -78,6 +107,11 @@ def mark_published(files: list[str], archive_urls: dict):
         if ep["file"] in files and ep["file"] not in published_files:
             ep["published_at"] = datetime.now(timezone.utc).isoformat()
             ep["audio_url"] = archive_urls.get(ep["file"], "")
+            # Capture file size now while the local file still exists
+            try:
+                ep["file_size"] = os.path.getsize(ep["path"])
+            except OSError:
+                ep["file_size"] = 0
             state["published"].append(ep)
             newly_published.append(ep)
         else:

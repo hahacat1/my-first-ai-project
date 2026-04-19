@@ -22,16 +22,49 @@ def _load_kokoro():
         )
 
 
-def generate_chapter(text: str, out_path: str, pipeline=None, voice: str = "af_heart") -> None:
-    """Convert a single chapter text to mp3."""
+MALE_VOICE = "am_adam"    # male narrator for scenario note boxes
+FEMALE_VOICE = "af_heart" # default female narrator for story text
+
+
+def _split_voice_segments(text: str) -> list[tuple[str, str]]:
+    """
+    Split text into (segment_text, voice) pairs based on [VOICE:MALE] markers.
+    Returns list of (text, voice) tuples in document order.
+    """
+    import re
+    segments = []
+    pattern = re.compile(r'\(\( NARRATOR BOX START \)\)(.*?)\(\( NARRATOR BOX END \)\)', re.DOTALL)
+    last_end = 0
+    for match in pattern.finditer(text):
+        # Normal text before this box
+        before = text[last_end:match.start()].strip()
+        if before:
+            segments.append((before, FEMALE_VOICE))
+        # Box text in male voice
+        box_text = match.group(1).strip()
+        if box_text:
+            segments.append((box_text, MALE_VOICE))
+        last_end = match.end()
+    # Remaining normal text after last box
+    after = text[last_end:].strip()
+    if after:
+        segments.append((after, FEMALE_VOICE))
+    return segments if segments else [(text, FEMALE_VOICE)]
+
+
+def generate_chapter(text: str, out_path: str, pipeline=None, voice: str = FEMALE_VOICE) -> None:
+    """Convert a chapter to mp3, switching to male voice for [VOICE:MALE] sections."""
     import numpy as np
 
     if pipeline is None:
         pipeline = _load_kokoro()
 
+    segments = _split_voice_segments(text)
     audio_chunks = []
-    for _, _, audio in pipeline(text, voice=voice, speed=1.0):
-        audio_chunks.append(audio)
+
+    for segment_text, segment_voice in segments:
+        for _, _, audio in pipeline(segment_text, voice=segment_voice, speed=1.0):
+            audio_chunks.append(audio)
 
     if not audio_chunks:
         raise RuntimeError(f"Kokoro produced no audio for: {out_path}")
@@ -49,7 +82,7 @@ def generate_all(in_dir: str, out_dir: str, voice: str = "af_heart") -> None:
 
     chapters = sorted([
         f for f in os.listdir(in_dir)
-        if f.startswith("chapter-") and f.endswith(".txt")
+        if (f.startswith("chapter-") or f.startswith("Chapter ")) and f.endswith(".txt")
     ])
 
     print(f"Voice: Kokoro TTS ({voice})")

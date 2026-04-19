@@ -36,7 +36,7 @@ def extract_characters(proofread_dir: str, seed_characters: list = None) -> list
     """
     chapters = sorted([
         f for f in os.listdir(proofread_dir)
-        if f.startswith("chapter-") and f.endswith(".txt")
+        if (f.startswith("chapter-") or f.startswith("Chapter ")) and f.endswith(".txt")
     ])[:20]
 
     combined_text = ""

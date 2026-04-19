@@ -16,11 +16,14 @@ import argparse
 import os
 import time
 import json
-import ollama
+from openai import OpenAI
+from pipeline.config import LM_STUDIO_URL, LM_STUDIO_MODEL
+
+client = OpenAI(base_url=LM_STUDIO_URL, api_key="lm-studio")
 
 INPUT_DIR = "output/if-you-dont-become-the-main-character-youll-die"
 OUTPUT_DIR = "output/proofread"
-MODEL = "qwen3.5:9b"
+MODEL = LM_STUDIO_MODEL
 
 PROMPT_TEMPLATE = """You are a proofreader for a Korean-to-English translated web novel called "If You Don't Become the Main Character, You'll Die".
 
@@ -39,14 +42,41 @@ Return ONLY the corrected chapter text. Nothing else.
 --- END ---"""
 
 
-def proofread_chapter(text: str) -> str:
-    prompt = PROMPT_TEMPLATE.format(text=text)
-    response = ollama.chat(
+def _proofread_chunk(chunk: str) -> str:
+    """Send a single small chunk to the model and return corrected text."""
+    prompt = PROMPT_TEMPLATE.format(text=chunk)
+    response = client.chat.completions.create(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.2},
+        temperature=0.2,
+        max_tokens=2048,
     )
-    return response["message"]["content"].strip()
+    return response.choices[0].message.content.strip()
+
+
+def proofread_chapter(text: str, chunk_words: int = 200) -> str:
+    """Split chapter into small chunks, proofread each, then rejoin."""
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+
+    chunks = []
+    current = []
+    current_words = 0
+
+    for para in paragraphs:
+        words = len(para.split())
+        if current_words + words > chunk_words and current:
+            chunks.append("\n\n".join(current))
+            current = [para]
+            current_words = words
+        else:
+            current.append(para)
+            current_words += words
+
+    if current:
+        chunks.append("\n\n".join(current))
+
+    corrected_chunks = [_proofread_chunk(c) for c in chunks]
+    return "\n\n".join(corrected_chunks)
 
 
 def get_chapter_files() -> list[str]:

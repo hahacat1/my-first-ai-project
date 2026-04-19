@@ -8,6 +8,18 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+
+def _get(url: str, retries: int = 3, backoff: float = 2.0) -> requests.Response:
+    """requests.get with simple retry on timeout/connection errors."""
+    for attempt in range(retries):
+        try:
+            return requests.get(url, headers=HEADERS, timeout=30)
+        except (requests.Timeout, requests.ConnectionError) as e:
+            if attempt == retries - 1:
+                raise
+            print(f"    Retry {attempt + 1}/{retries - 1} after error: {e}")
+            time.sleep(backoff * (attempt + 1))
+
 TOC_URL = "https://maplesantl.com/if-you-dont-become-the-main-character-youll-die-list-of-episodes/"
 
 HEADERS = {
@@ -25,13 +37,14 @@ CONTENT_SELECTORS = [
 ]
 
 # Tags to strip from content (ads, navigation, etc.)
-STRIP_TAGS = ["script", "style", "nav", "header", "footer", "figure", "img", "iframe"]
+# Strip noise but keep figure tags that contain tables (scenario note boxes)
+STRIP_TAGS = ["script", "style", "nav", "header", "footer", "img", "iframe"]
 
 
 def get_chapter_urls() -> list[dict]:
     """Fetch the table of contents and return a list of {episode, title, url} dicts."""
     print("Fetching table of contents...")
-    resp = requests.get(TOC_URL, headers=HEADERS, timeout=30)
+    resp = _get(TOC_URL)
     resp.raise_for_status()
 
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -58,7 +71,7 @@ def get_chapter_urls() -> list[dict]:
 
 def get_chapter_text(url: str) -> str:
     """Fetch a single chapter page and return clean plain text."""
-    resp = requests.get(url, headers=HEADERS, timeout=30)
+    resp = _get(url)
     resp.raise_for_status()
 
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -77,18 +90,29 @@ def get_chapter_text(url: str) -> str:
     if not content_div:
         raise RuntimeError(f"Could not find chapter content on: {url}")
 
-    # Extract paragraphs — skip empty ones and navigation text
-    paragraphs = []
-    for p in content_div.find_all("p"):
-        text = p.get_text(strip=True)
-        if text and not _is_navigation(text):
-            paragraphs.append(text)
+    # Extract content in document order — paragraphs AND table boxes (scenario notes)
+    blocks = []
+    for element in content_div.find_all(["p", "table"], recursive=True):
+        if element.name == "p":
+            text = element.get_text(strip=True)
+            if text and not _is_navigation(text):
+                blocks.append(text)
+        elif element.name == "table":
+            # Scenario note boxes — extract cell text preserving line breaks
+            rows = []
+            for tr in element.find_all("tr"):
+                cell_text = tr.get_text(separator="\n").strip()
+                if cell_text:
+                    rows.append(cell_text)
+            table_text = "\n".join(rows).strip()
+            if table_text and not _is_navigation(table_text):
+                # Wrap with voice markers so TTS uses a male narrator voice
+                blocks.append(f"\n(( NARRATOR BOX START ))\n{table_text}\n(( NARRATOR BOX END ))\n")
 
-    if not paragraphs:
-        # Fallback: grab all text from the content div
+    if not blocks:
         return content_div.get_text(separator="\n").strip()
 
-    return "\n\n".join(paragraphs)
+    return "\n\n".join(blocks)
 
 
 def _is_navigation(text: str) -> bool:

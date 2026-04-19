@@ -9,7 +9,7 @@ Usage:
     python pipeline/run.py --novel if-you-dont-become-mc --stages images
     python pipeline/run.py --novel if-you-dont-become-mc --stages video
 
-Available stages: scrape, proofread, voice, images, video
+Available stages: scrape, proofread, enrich, voice, images, video, podcast
 """
 
 import argparse
@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pipeline.config import NOVELS
 
-ALL_STAGES = ["scrape", "proofread", "voice", "images", "video"]
+ALL_STAGES = ["scrape", "proofread", "enrich", "voice", "images", "video", "podcast"]
 
 
 def output_path(slug: str, *parts) -> str:
@@ -103,6 +103,16 @@ def run_proofread(novel: dict):
     print(f"  Proofread complete: {out_dir}")
 
 
+def run_enrich(novel: dict):
+    slug = novel["slug"]
+    proofread_dir = output_path(slug, "proofread")
+    voice_dir = output_path(slug, "voice")
+
+    print(f"\n[ENRICH] Generating subtitles for bare titles in {proofread_dir}")
+    from proofreader.enrich_titles import run as enrich_run
+    enrich_run(proofread_dir=proofread_dir, voice_dir=voice_dir)
+
+
 def run_voice(novel: dict):
     slug = novel["slug"]
     in_dir = output_path(slug, "proofread")
@@ -129,6 +139,14 @@ def run_images(novel: dict):
     generate_scene_images(proofread_dir, scenes_dir)
 
 
+def run_podcast(novel: dict, dump: int = 0, batch: int = 1):
+    slug = novel["slug"]
+    n = dump if dump > 0 else batch
+    print(f"\n[PODCAST] Publishing {n} episode(s) for {novel['title']}")
+    from podcast.publisher import publish_batch
+    publish_batch(slug, n)
+
+
 def run_video(novel: dict):
     slug = novel["slug"]
     proofread_dir = output_path(slug, "proofread")
@@ -152,9 +170,11 @@ def run_video(novel: dict):
 STAGE_RUNNERS = {
     "scrape": run_scrape,
     "proofread": run_proofread,
+    "enrich": run_enrich,
     "voice": run_voice,
     "images": run_images,
     "video": run_video,
+    "podcast": run_podcast,
 }
 
 
@@ -163,7 +183,11 @@ def main():
     parser.add_argument("--novel", required=True, choices=list(NOVELS.keys()),
                         help="Novel slug from pipeline/config.py")
     parser.add_argument("--stages", default="all",
-                        help="Comma-separated stages: scrape,proofread,voice,images,video  or  all")
+                        help="Comma-separated stages or 'all': scrape,proofread,enrich,voice,images,video,podcast")
+    parser.add_argument("--dump", type=int, default=0,
+                        help="Podcast: publish first N episodes in one batch (initial dump)")
+    parser.add_argument("--batch", type=int, default=1,
+                        help="Podcast: publish N episodes (daily drip, default 1)")
     args = parser.parse_args()
 
     novel = NOVELS[args.novel]
@@ -180,7 +204,10 @@ def main():
         if stage not in STAGE_RUNNERS:
             print(f"Unknown stage: {stage}. Valid: {', '.join(ALL_STAGES)}")
             sys.exit(1)
-        STAGE_RUNNERS[stage](novel)
+        if stage == "podcast":
+            STAGE_RUNNERS[stage](novel, dump=args.dump, batch=args.batch)
+        else:
+            STAGE_RUNNERS[stage](novel)
 
     print("\nPipeline complete!")
 

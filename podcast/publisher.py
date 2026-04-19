@@ -24,17 +24,7 @@ from podcast.rss_generator import generate_rss
 
 def publish_batch(novel_slug: str, n: int):
     novel = NOVELS[novel_slug]
-    voice_dir = os.path.join("output", novel["title"].lower().replace(" ", "-")
-                             .replace(",", "").replace("'", ""), "voice")
-
-    # Fallback to known path
-    for candidate in [
-        f"output/{novel_slug}/voice",
-        f"output/if-you-dont-become-the-main-character-youll-die/voice",
-    ]:
-        if os.path.isdir(candidate):
-            voice_dir = candidate
-            break
+    voice_dir = f"output/{novel_slug}/voice"
 
     print(f"Building publish queue from: {voice_dir}")
     build_queue(voice_dir, novel["title"])

@@ -125,7 +125,7 @@ def generate_character_portraits(characters: list, out_dir: str) -> None:
             print("done")
         except RuntimeError as e:
             print(f"FAILED: {e}")
-            break
+            continue
 
 
 def generate_scene_images(proofread_dir: str, out_dir: str) -> None:
@@ -134,7 +134,7 @@ def generate_scene_images(proofread_dir: str, out_dir: str) -> None:
 
     chapters = sorted([
         f for f in os.listdir(proofread_dir)
-        if f.startswith("chapter-") and f.endswith(".txt")
+        if (f.startswith("chapter-") or f.startswith("Chapter ")) and f.endswith(".txt")
     ])
     print(f"  Generating scene images for {len(chapters)} chapters → {out_dir}")
 
@@ -154,4 +154,4 @@ def generate_scene_images(proofread_dir: str, out_dir: str) -> None:
             print("done")
         except RuntimeError as e:
             print(f"FAILED: {e}")
-            break
+            continue

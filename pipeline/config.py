@@ -1,6 +1,14 @@
 """
 Per-novel configuration. Add a new entry here for each novel you want to process.
+API keys are loaded from .env (copy .env.example → .env and fill in).
 """
+
+import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv optional; keys can also be set in the environment directly
 
 NOVELS = {
     "if-you-dont-become-mc": {
@@ -18,14 +26,18 @@ NOVELS = {
     },
 }
 
-# Ollama model used for proofreading and director prompts
-OLLAMA_MODEL = "qwen3.5:9b"
+# Ollama model used for character extraction and director prompts
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
+
+# LM Studio model/URL used for proofreading and title enrichment
+LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "google/gemma-4-e4b")
 
 # Stable Diffusion (ComfyUI) local API
 COMFYUI_URL = "http://127.0.0.1:8188"
 
-# Higgsfield API — set your key here when you sign up
-HIGGSFIELD_API_KEY = ""  # get from higgsfield.ai
+# Higgsfield API — set in .env as HIGGSFIELD_API_KEY=your_key_here
+HIGGSFIELD_API_KEY = os.getenv("HIGGSFIELD_API_KEY", "")
 
 # Words per minute for narration (used to calculate 5-min segment length)
 NARRATION_WPM = 150

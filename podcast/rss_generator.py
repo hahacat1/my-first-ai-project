@@ -75,7 +75,8 @@ def generate_rss() -> str:
     for i, ep in enumerate(reversed(published)):
         pub_date = now - timedelta(days=i)
         audio_url = ep.get("audio_url", "")
-        file_size = _get_file_size(ep.get("path", ""))
+        # Use size captured at publish time; fall back to live file if available
+        file_size = ep.get("file_size") or _get_file_size(ep.get("path", ""))
         duration = _get_mp3_duration(ep.get("path", ""))
 
         items_xml += f"""

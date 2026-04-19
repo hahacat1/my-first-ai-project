@@ -20,7 +20,7 @@ def segment_chapters(proofread_dir: str) -> list[dict]:
     """
     chapters = sorted([
         f for f in os.listdir(proofread_dir)
-        if f.startswith("chapter-") and f.endswith(".txt")
+        if (f.startswith("chapter-") or f.startswith("Chapter ")) and f.endswith(".txt")
     ])
 
     segments = []

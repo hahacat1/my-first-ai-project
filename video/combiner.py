@@ -9,20 +9,22 @@ BGM: Download royalty-free music from freepd.com or pixabay.com/music
 
 import os
 import glob
+import tempfile
 from moviepy.editor import (
     VideoFileClip, AudioFileClip, CompositeAudioClip,
     concatenate_videoclips, afx
 )
 
-BGM_PATH = "assets/bgm.mp3"
 BGM_VOLUME = 0.08  # background music much quieter than narration
 
 
 def combine_to_episodes(segments_dir: str, final_dir: str,
-                        segs_per_episode: int = 3) -> None:
+                        segs_per_episode: int = 3,
+                        bgm_path: str | None = None) -> None:
     """
     Groups video segments into episodes of ~15 min (3 × 5-min segments by default).
-    Adds crossfades between clips. Adds BGM if assets/bgm.mp3 exists.
+    Adds 1-second crossfades between clips.
+    Overlays BGM if bgm_path is provided and the file exists.
     Saves final episodes to final_dir/episode-NNN.mp4
     """
     os.makedirs(final_dir, exist_ok=True)
@@ -32,7 +34,6 @@ def combine_to_episodes(segments_dir: str, final_dir: str,
         print("  No segment .mp4 files found. Run the compose stage first.")
         return
 
-    # Group into episodes
     episodes = [
         segment_files[i:i + segs_per_episode]
         for i in range(0, len(segment_files), segs_per_episode)
@@ -40,9 +41,11 @@ def combine_to_episodes(segments_dir: str, final_dir: str,
 
     print(f"  {len(segment_files)} segments → {len(episodes)} episodes")
 
-    has_bgm = os.path.exists(BGM_PATH)
-    if has_bgm:
-        print(f"  BGM found: {BGM_PATH}")
+    has_bgm = bgm_path is not None and os.path.exists(bgm_path)
+    if bgm_path and not has_bgm:
+        print(f"  BGM not found at {bgm_path} — continuing without music")
+    elif has_bgm:
+        print(f"  BGM: {bgm_path}")
 
     for ep_num, ep_files in enumerate(episodes, 1):
         out_path = os.path.join(final_dir, f"episode-{ep_num:03d}.mp4")
@@ -54,40 +57,41 @@ def combine_to_episodes(segments_dir: str, final_dir: str,
 
         clips = [VideoFileClip(f) for f in ep_files]
 
-        # Crossfade 1 second between clips
-        combined = concatenate_videoclips(clips, method="compose",
-                                          padding=-1, transition=None)
+        # Proper 1-second crossfade: apply crossfadein to every clip after the first
+        clips_faded = [clips[0]] + [c.crossfadein(1) for c in clips[1:]]
+        combined = concatenate_videoclips(clips_faded, padding=-1, method="compose")
 
-        # Add BGM if available — loop it to match video length
         if has_bgm:
-            bgm = AudioFileClip(BGM_PATH)
+            bgm = AudioFileClip(bgm_path)
             if bgm.duration < combined.duration:
                 loops = int(combined.duration / bgm.duration) + 1
                 bgm = afx.audio_loop(bgm, nloops=loops)
             bgm = bgm.subclip(0, combined.duration).volumex(BGM_VOLUME)
-
             if combined.audio:
-                combined = combined.set_audio(
-                    CompositeAudioClip([combined.audio, bgm])
-                )
+                combined = combined.set_audio(CompositeAudioClip([combined.audio, bgm]))
             else:
                 combined = combined.set_audio(bgm)
 
-        combined.write_videofile(
-            out_path,
-            codec="libx264",
-            audio_codec="aac",
-            temp_audiofile=f"/tmp/ep{ep_num}_audio.m4a",
-            remove_temp=True,
-            verbose=False,
-            logger=None,
-        )
+        with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp:
+            tmp_path = tmp.name
 
-        for clip in clips:
-            clip.close()
-        combined.close()
+        try:
+            combined.write_videofile(
+                out_path,
+                codec="libx264",
+                audio_codec="aac",
+                temp_audiofile=tmp_path,
+                remove_temp=True,
+                verbose=False,
+                logger=None,
+            )
+        finally:
+            for clip in clips:
+                clip.close()
+            combined.close()
 
         print("done")
 
     print(f"  Episodes saved to: {final_dir}")
-    print(f"  TIP: Place royalty-free BGM at assets/bgm.mp3 before running this stage.")
+    if not has_bgm:
+        print(f"  TIP: Pass bgm_path='assets/bgm.mp3' to add background music.")

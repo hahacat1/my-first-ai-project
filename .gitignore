@@ -8,6 +8,7 @@ __pycache__/
 
 # Secrets
 pipeline/config_secrets.py
+.env
 
 # Cron logs
 podcast/cron.log

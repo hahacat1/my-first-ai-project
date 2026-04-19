@@ -100,9 +100,14 @@ def compose_segments(segments: list[dict], scenes_dir: str,
             print(f"  [{i}/{len(segments)}] {seg['id']} already done")
             continue
 
-        # Find scene image — use first chapter's image for this segment
-        first_chapter = seg["chapters"][0].replace(".txt", ".png")
-        image_path = os.path.join(scenes_dir, first_chapter)
+        # Find scene image — try exact filename match, then fall back to chapter-NNN.png
+        import re as _re
+        ch_file = seg["chapters"][0]
+        image_path = os.path.join(scenes_dir, ch_file.replace(".txt", ".png"))
+        if not os.path.exists(image_path):
+            m = _re.search(r'(\d+)', ch_file)
+            if m:
+                image_path = os.path.join(scenes_dir, f"chapter-{int(m.group(1)):03d}.png")
         if not os.path.exists(image_path):
             print(f"  [{i}/{len(segments)}] {seg['id']} — no scene image found, skipping")
             continue

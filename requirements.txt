@@ -1,10 +1,14 @@
+# Config
+python-dotenv
+
 # Scraping
 lightnovel-crawler
 beautifulsoup4
 requests
 
-# Proofreading & AI prompts (local, via Ollama)
+# Proofreading & AI prompts (local, via Ollama + LM Studio)
 ollama
+openai
 
 # Voice / TTS
 kokoro

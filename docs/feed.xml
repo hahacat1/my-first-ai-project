@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<channel>
+  <title>If You Don't Become the Main Character, You'll Die</title>
+  <description>AI-narrated audiobook of the top-ranked Korean web novel.</description>
+  <language>en-us</language>
+  <link>https://hahacat1.github.io/my-first-ai-project</link>
+  <atom:link href="https://hahacat1.github.io/my-first-ai-project/feed.xml" rel="self" type="application/rss+xml"
+    xmlns:atom="http://www.w3.org/2005/Atom"/>
+  <itunes:author>WebNovel AI Studio</itunes:author>
+  <itunes:image href=""/>
+  <image><url></url><title>If You Don't Become the Main Character, You'll Die</title></image>
+  <itunes:category text="Arts">
+    <itunes:category text="Books"/>
+  </itunes:category>
+  <itunes:explicit>false</itunes:explicit>
+  
+  <item>
+    <title>If You Don't Become the Main Character, You'll Die — Episode 5 The Afterlife of the Good Person</title>
+    <description>If You Don't Become the Main Character, You'll Die — Episode 5 The Afterlife of the Good Person</description>
+    <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20005%20-%20Episode%205%20The%20Afterlife%20of%20the%20Good%20Person.mp3" length="6008181" type="audio/mpeg"/>
+    <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20005%20-%20Episode%205%20The%20Afterlife%20of%20the%20Good%20Person.mp3</guid>
+    <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
+    <itunes:duration>00:11:12</itunes:duration>
+    <itunes:episode>5</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+  </item>
+  <item>
+    <title>If You Don't Become the Main Character, You'll Die — Episode 4 Whispers and toasts to a fallen hero</title>
+    <description>If You Don't Become the Main Character, You'll Die — Episode 4 Whispers and toasts to a fallen hero</description>
+    <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20004%20-%20Episode%204%20Whispers%20and%20toasts%20to%20a%20fallen%20hero.mp3" length="6663261" type="audio/mpeg"/>
+    <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20004%20-%20Episode%204%20Whispers%20and%20toasts%20to%20a%20fallen%20hero.mp3</guid>
+    <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
+    <itunes:duration>00:12:17</itunes:duration>
+    <itunes:episode>4</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+  </item>
+  <item>
+    <title>If You Don't Become the Main Character, You'll Die — Episode 3 The Inn Becomes an Information Guild</title>
+    <description>If You Don't Become the Main Character, You'll Die — Episode 3 The Inn Becomes an Information Guild</description>
+    <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20003%20-%20Episode%203%20The%20Inn%20Becomes%20an%20Information%20Guild.mp3" length="4795317" type="audio/mpeg"/>
+    <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20003%20-%20Episode%203%20The%20Inn%20Becomes%20an%20Information%20Guild.mp3</guid>
+    <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
+    <itunes:duration>00:08:48</itunes:duration>
+    <itunes:episode>3</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+  </item>
+  <item>
+    <title>If You Don't Become the Main Character, You'll Die — Episode 2 Securing My Home, Success</title>
+    <description>If You Don't Become the Main Character, You'll Die — Episode 2 Securing My Home, Success</description>
+    <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20002%20-%20Episode%202%20Securing%20My%20Home,%20Success.mp3" length="5539125" type="audio/mpeg"/>
+    <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20002%20-%20Episode%202%20Securing%20My%20Home,%20Success.mp3</guid>
+    <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
+    <itunes:duration>00:10:13</itunes:duration>
+    <itunes:episode>2</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+  </item>
+  <item>
+    <title>If You Don't Become the Main Character, You'll Die — Episode 1 The First Scene of the Stage</title>
+    <description>If You Don't Become the Main Character, You'll Die — Episode 1 The First Scene of the Stage</description>
+    <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20001%20-%20Episode%201%20The%20First%20Scene%20of%20the%20Stage.mp3" length="6572205" type="audio/mpeg"/>
+    <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20001%20-%20Episode%201%20The%20First%20Scene%20of%20the%20Stage.mp3</guid>
+    <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
+    <itunes:duration>00:12:06</itunes:duration>
+    <itunes:episode>1</itunes:episode>
+    <itunes:episodeType>full</itunes:episodeType>
+  </item>
+</channel>
+</rss>

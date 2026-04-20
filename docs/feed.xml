@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
   xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:atom="http://www.w3.org/2005/Atom"
   xmlns:content="http://purl.org/rss/1.0/modules/content/">
 <channel>
   <title>If You Don't Become the Main Character, You'll Die</title>
   <description>AI-narrated audiobook of the top-ranked Korean web novel.</description>
   <language>en-us</language>
   <link>https://hahacat1.github.io/my-first-ai-project</link>
-  <atom:link href="https://hahacat1.github.io/my-first-ai-project/feed.xml" rel="self" type="application/rss+xml"
-    xmlns:atom="http://www.w3.org/2005/Atom"/>
+  <atom:link href="https://hahacat1.github.io/my-first-ai-project/feed.xml" rel="self" type="application/rss+xml"/>
   <itunes:author>WebNovel AI Studio</itunes:author>
   <itunes:owner>
     <itunes:name>WebNovel AI Studio</itunes:name>

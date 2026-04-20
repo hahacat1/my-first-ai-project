@@ -126,6 +126,53 @@ def _is_navigation(text: str) -> bool:
     return any(phrase in lower for phrase in nav_phrases)
 
 
+def scrape_cover_image(novel_dir: str):
+    """
+    Download the novel cover image from the TOC page and save to novel_dir/cover_source.jpg
+    Returns the saved path or None if not found.
+    """
+    import os
+    resp = _get(TOC_URL)
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # Look for the main featured/cover image — typically the first large image on the TOC page
+    img = None
+    for candidate in soup.find_all("img"):
+        src = candidate.get("src", "") or candidate.get("data-src", "")
+        if not src:
+            continue
+        # Skip tiny icons, avatars, ads
+        width = int(candidate.get("width", 999))
+        height = int(candidate.get("height", 999))
+        if width < 100 or height < 100:
+            continue
+        img = src
+        break
+
+    if not img:
+        print("  Cover image not found on TOC page.")
+        return None
+
+    if img.startswith("//"):
+        img = "https:" + img
+
+    print(f"  Downloading cover image: {img}")
+    try:
+        r = requests.get(img, headers=HEADERS, timeout=30)
+        r.raise_for_status()
+        ext = img.split(".")[-1].split("?")[0].lower()
+        if ext not in ("jpg", "jpeg", "png", "webp"):
+            ext = "jpg"
+        out_path = os.path.join(novel_dir, f"cover_source.{ext}")
+        with open(out_path, "wb") as f:
+            f.write(r.content)
+        print(f"  Cover saved: {out_path}")
+        return out_path
+    except Exception as e:
+        print(f"  Cover download failed: {e}")
+        return None
+
+
 def scrape_all(output_dir: str, delay: float = 1.0) -> dict:
     """
     Download all chapters to output_dir as chapter-NNN.txt files.

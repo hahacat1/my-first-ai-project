@@ -15,14 +15,14 @@ ComfyUI (for images) must be installed separately: https://github.com/comfyanony
 ## Running the Pipeline
 ```bash
 # Full pipeline
-python pipeline/run.py --novel if-you-dont-become-mc --stages all
+python pipeline/run.py --novel if-you-dont-become-the-main-character-youll-die --stages all
 
 # Individual stages
-python pipeline/run.py --novel if-you-dont-become-mc --stages scrape
-python pipeline/run.py --novel if-you-dont-become-mc --stages proofread
-python pipeline/run.py --novel if-you-dont-become-mc --stages voice
-python pipeline/run.py --novel if-you-dont-become-mc --stages images
-python pipeline/run.py --novel if-you-dont-become-mc --stages video
+python pipeline/run.py --novel if-you-dont-become-the-main-character-youll-die --stages scrape
+python pipeline/run.py --novel if-you-dont-become-the-main-character-youll-die --stages proofread
+python pipeline/run.py --novel if-you-dont-become-the-main-character-youll-die --stages voice
+python pipeline/run.py --novel if-you-dont-become-the-main-character-youll-die --stages images
+python pipeline/run.py --novel if-you-dont-become-the-main-character-youll-die --stages video
 ```
 
 ## Adding a New Novel
@@ -30,21 +30,30 @@ python pipeline/run.py --novel if-you-dont-become-mc --stages video
 2. Add a custom scraper to `scraper/sites/<sitename>.py` if the site isn't in lncrawl
 3. Run `--stages all`
 
-## Output Structure (per novel)
+## Project Structure
 ```
-output/<novel-slug>/
-  chapters/       ← raw scraped .txt
-  proofread/      ← Ollama-cleaned .txt
-  voice/          ← chapter-NNN.mp3 (Kokoro TTS)
-  images/
-    characters/   ← SD portrait per character
-    scenes/       ← SD scene image per chapter
-    director_prompts.json  ← review/edit before video gen
-  video/
-    segments/     ← seg-NNN.mp4 (Higgsfield clips)
-    final/        ← episode-NNN.mp4 (combined)
-  characters.json ← extracted character descriptions
+Webnovels/
+  pipeline/        ← orchestrator, config
+  scraper/         ← site scrapers
+  proofreader/     ← LM Studio proofreader + title enricher
+  voice/           ← Kokoro TTS
+  images/          ← character + scene generation
+  video/           ← segment composer + combiner
+  podcast/         ← RSS, Archive.org uploader, queue
+  novels/
+    <novel-slug>/  ← one folder per book
+      chapters/    ← raw scraped .txt
+      proofread/   ← enriched + renamed Chapter NNN - Title.txt
+      voice/       ← Chapter NNN - Title.mp3 (Kokoro TTS)
+      images/
+        characters/
+        scenes/
+      video/
+        segments/
+        final/
 ```
+
+To add a new novel: add entry to `pipeline/config.py`, add scraper if needed, run `--stages all`.
 
 ## Architecture
 - `pipeline/config.py` — novel registry, API keys, model settings

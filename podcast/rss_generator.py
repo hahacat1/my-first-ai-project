@@ -73,7 +73,11 @@ def generate_rss() -> str:
     items_xml = ""
 
     for i, ep in enumerate(reversed(published)):
-        pub_date = now - timedelta(days=i)
+        pub_date_str = ep.get("published_at", "")
+        if pub_date_str:
+            pub_date = datetime.fromisoformat(pub_date_str)
+        else:
+            pub_date = now - timedelta(days=i)
         audio_url = ep.get("audio_url", "")
         # Use size captured at publish time; fall back to live file if available
         file_size = ep.get("file_size") or _get_file_size(ep.get("path", ""))
@@ -97,21 +101,26 @@ def generate_rss() -> str:
     rss = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
   xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:atom="http://www.w3.org/2005/Atom"
   xmlns:content="http://purl.org/rss/1.0/modules/content/">
 <channel>
   <title>{_escape(config['podcast_title'])}</title>
   <description>{_escape(config['podcast_description'])}</description>
   <language>{config['podcast_language']}</language>
   <link>{config['github_pages_url']}</link>
-  <atom:link href="{feed_url}" rel="self" type="application/rss+xml"
-    xmlns:atom="http://www.w3.org/2005/Atom"/>
+  <atom:link href="{feed_url}" rel="self" type="application/rss+xml"/>
   <itunes:author>{_escape(config['podcast_author'])}</itunes:author>
+  <itunes:owner>
+    <itunes:name>{_escape(config['podcast_author'])}</itunes:name>
+    <itunes:email>{config.get('podcast_email', '')}</itunes:email>
+  </itunes:owner>
   <itunes:image href="{cover_url}"/>
   <image><url>{cover_url}</url><title>{_escape(config['podcast_title'])}</title></image>
   <itunes:category text="Arts">
     <itunes:category text="Books"/>
   </itunes:category>
   <itunes:explicit>false</itunes:explicit>
+  <itunes:type>episodic</itunes:type>
   {items_xml}
 </channel>
 </rss>"""

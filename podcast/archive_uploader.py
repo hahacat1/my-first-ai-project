@@ -38,21 +38,12 @@ def upload_episodes(episodes: list[dict], novel_slug: str, novel_title: str) -> 
     """
     ia = _get_ia()
     identifier = _item_identifier(novel_slug)
-
-    # Create the Archive.org item if it doesn't exist yet
-    item = ia.get_item(identifier)
-    if not item.exists:
-        print(f"  Creating Archive.org item: {identifier}")
-        ia.upload(
-            identifier,
-            files={},
-            metadata={
-                "title": f"{novel_title} — Audiobook",
-                "mediatype": "audio",
-                "subject": ["audiobook", "webnovel", "podcast"],
-                "description": f"AI-narrated audiobook of {novel_title}",
-            },
-        )
+    metadata = {
+        "title": f"{novel_title} — Audiobook",
+        "mediatype": "audio",
+        "subject": ["audiobook", "webnovel", "podcast"],
+        "description": f"AI-narrated audiobook of {novel_title}",
+    }
 
     urls = {}
     for ep in episodes:
@@ -60,10 +51,10 @@ def upload_episodes(episodes: list[dict], novel_slug: str, novel_title: str) -> 
         filename = ep["file"]
         print(f"  Uploading {filename} to Archive.org...", end=" ", flush=True)
         try:
-            ia.upload(identifier, files={filename: path}, checksum=True)
-            public_url = f"https://archive.org/download/{identifier}/{filename}"
+            ia.upload(identifier, files={filename: path}, metadata=metadata, checksum=True)
+            public_url = f"https://archive.org/download/{identifier}/{filename.replace(' ', '%20')}"
             urls[filename] = public_url
-            print(f"done")
+            print("done")
         except Exception as e:
             print(f"FAILED: {e}")
 

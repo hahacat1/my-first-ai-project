@@ -3,8 +3,8 @@
 Podcast publisher — uploads batch to Archive.org, updates RSS, pushes to GitHub Pages.
 
 Usage:
-    python podcast/publisher.py --novel if-you-dont-become-mc --dump 10   # initial 10-episode dump
-    python podcast/publisher.py --novel if-you-dont-become-mc --batch 1   # daily 1 episode
+    python podcast/publisher.py --novel if-you-dont-become-the-main-character-youll-die --dump 10   # initial 10-episode dump
+    python podcast/publisher.py --novel if-you-dont-become-the-main-character-youll-die --batch 1   # daily 1 episode
 
 Run automatically at 8am via cron (set up with: python podcast/publisher.py --install-cron)
 """
@@ -24,7 +24,7 @@ from podcast.rss_generator import generate_rss
 
 def publish_batch(novel_slug: str, n: int):
     novel = NOVELS[novel_slug]
-    voice_dir = f"output/{novel_slug}/voice"
+    voice_dir = f"novels/{novel_slug}/voice"
 
     print(f"Building publish queue from: {voice_dir}")
     build_queue(voice_dir, novel["title"])
@@ -73,34 +73,36 @@ def _push_github():
 
 
 def install_cron():
-    """Add a daily 8am cron job for this script."""
+    """Add 8am and 8pm EST cron jobs (runs at 12:00 and 00:00 UTC = 8am/8pm EDT)."""
     script_path = os.path.abspath(__file__)
     project_dir = os.path.dirname(os.path.dirname(script_path))
-    cron_cmd = (
-        f"0 8 * * * cd {project_dir} && "
-        f"python3 {script_path} --novel if-you-dont-become-mc --batch 1 "
+    base_cmd = (
+        f"cd {project_dir} && "
+        f"python3 {script_path} --novel if-you-dont-become-the-main-character-youll-die --batch 1 "
         f">> {project_dir}/podcast/cron.log 2>&1"
     )
+    # 8am EDT = 12:00 UTC, 8pm EDT = 00:00 UTC
+    cron_morning = f"0 12 * * * {base_cmd}"
+    cron_evening = f"0 0 * * * {base_cmd}"
 
-    # Read current crontab
     result = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
     current = result.stdout if result.returncode == 0 else ""
 
     if "publisher.py" in current:
-        print("Cron job already installed.")
+        print("Cron jobs already installed.")
         return
 
-    new_crontab = current.rstrip() + "\n" + cron_cmd + "\n"
+    new_crontab = current.rstrip() + "\n" + cron_morning + "\n" + cron_evening + "\n"
     subprocess.run(["crontab", "-"], input=new_crontab, text=True, check=True)
-    print(f"Cron job installed! Will run daily at 8am.")
+    print("Cron jobs installed! Will publish 1 episode at 8am EST and 1 at 8pm EST.")
     print(f"Log: {project_dir}/podcast/cron.log")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--novel", default="if-you-dont-become-mc")
+    parser.add_argument("--novel", default="if-you-dont-become-the-main-character-youll-die")
     parser.add_argument("--dump", type=int, help="Initial dump: publish N episodes at once")
-    parser.add_argument("--batch", type=int, default=1, help="Daily batch size (default: 1)")
+    parser.add_argument("--batch", type=int, default=2, help="Daily batch size (default: 2)")
     parser.add_argument("--install-cron", action="store_true", help="Install daily 8am cron job")
     args = parser.parse_args()
 

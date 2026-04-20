@@ -108,17 +108,34 @@ def _generate_image(positive: str, negative: str, out_path: str,
 
 
 def generate_character_portraits(characters: list, out_dir: str) -> None:
+    """
+    Generate portrait for each character.
+    Reads prompt from <out_dir>/<name_slug>/prompt.txt if it exists (user-editable).
+    Saves portrait to <out_dir>/<name_slug>/portrait.png
+    """
     os.makedirs(out_dir, exist_ok=True)
     print(f"  Generating {len(characters)} character portraits → {out_dir}")
 
     for char in characters:
-        name_slug = char["name"].lower().replace(" ", "_")
-        out_path = os.path.join(out_dir, f"{name_slug}.png")
+        name_slug = char["name"].lower().replace(" ", "_").replace("/", "_")
+        char_dir = os.path.join(out_dir, name_slug)
+        os.makedirs(char_dir, exist_ok=True)
+        out_path = os.path.join(char_dir, "portrait.png")
+
         if os.path.exists(out_path):
             print(f"    {char['name']} already exists, skipping")
             continue
 
-        positive, negative = character_portrait_prompt(char)
+        # Read prompt from file if user has edited it, otherwise build from character data
+        prompt_path = os.path.join(char_dir, "prompt.txt")
+        if os.path.exists(prompt_path):
+            with open(prompt_path, encoding="utf-8") as f:
+                content = f.read()
+            positive = _parse_prompt_section(content, "POSITIVE PROMPT")
+            negative = _parse_prompt_section(content, "NEGATIVE PROMPT") or NEGATIVE_PROMPT
+        else:
+            positive, negative = character_portrait_prompt(char)
+
         print(f"    Generating {char['name']}...", end=" ", flush=True)
         try:
             _generate_image(positive, negative, out_path, width=832, height=1216)
@@ -126,6 +143,17 @@ def generate_character_portraits(characters: list, out_dir: str) -> None:
         except RuntimeError as e:
             print(f"FAILED: {e}")
             continue
+
+
+def _parse_prompt_section(content: str, section: str) -> str:
+    """Extract a [SECTION] block from a prompt.txt file."""
+    marker = f"[{section}]"
+    if marker not in content:
+        return ""
+    after = content.split(marker, 1)[1]
+    # Next section starts with [
+    end = after.find("\n[")
+    return after[:end].strip() if end != -1 else after.strip()
 
 
 def generate_scene_images(proofread_dir: str, out_dir: str) -> None:

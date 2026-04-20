@@ -6,8 +6,7 @@ lightnovel-crawler
 beautifulsoup4
 requests
 
-# Proofreading & AI prompts (local, via Ollama + LM Studio)
-ollama
+# Proofreading & AI prompts (local, via LM Studio)
 openai
 
 # Voice / TTS
@@ -15,7 +14,7 @@ kokoro
 soundfile
 
 # Video stitching
-moviepy
+moviepy>=1.0.3,<2
 
 # Higgsfield video generation API
 higgsfield-client
@@ -23,3 +22,7 @@ higgsfield-client
 # Podcast publishing
 internetarchive
 mutagen
+
+# YouTube / TikTok publishing
+google-api-python-client
+google-auth-oauthlib

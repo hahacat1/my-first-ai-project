@@ -7,6 +7,8 @@ Reads proofread chapter .txt files → saves .mp3 per chapter into output/<novel
 
 import os
 import json
+import subprocess
+import tempfile
 import soundfile as sf
 
 
@@ -70,7 +72,16 @@ def generate_chapter(text: str, out_path: str, pipeline=None, voice: str = FEMAL
         raise RuntimeError(f"Kokoro produced no audio for: {out_path}")
 
     combined = np.concatenate(audio_chunks)
-    sf.write(out_path, combined, 24000)
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_wav = tmp.name
+    try:
+        sf.write(tmp_wav, combined, 24000)
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_wav, "-codec:a", "libmp3lame", "-qscale:a", "2", out_path],
+            check=True, capture_output=True,
+        )
+    finally:
+        os.unlink(tmp_wav)
 
 
 def generate_all(in_dir: str, out_dir: str, voice: str = "af_heart") -> None:

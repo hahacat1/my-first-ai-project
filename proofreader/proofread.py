@@ -7,8 +7,8 @@ Usage:
     python3 proofreader/proofread.py --test            # chapter 1 only (test run)
     python3 proofreader/proofread.py --start 10        # resume from chapter 10
 
-Reads from:  output/if-you-dont-become-the-main-character-youll-die/
-Saves to:    output/proofread/
+Reads from:  novels/if-you-dont-become-the-main-character-youll-die/chapters/
+Saves to:    novels/if-you-dont-become-the-main-character-youll-die/proofread/
 Progress is saved so you can stop and resume anytime.
 """
 
@@ -21,8 +21,8 @@ from pipeline.config import LM_STUDIO_URL, LM_STUDIO_MODEL
 
 client = OpenAI(base_url=LM_STUDIO_URL, api_key="lm-studio")
 
-INPUT_DIR = "output/if-you-dont-become-the-main-character-youll-die"
-OUTPUT_DIR = "output/proofread"
+INPUT_DIR = "novels/if-you-dont-become-the-main-character-youll-die/chapters"
+OUTPUT_DIR = "novels/if-you-dont-become-the-main-character-youll-die/proofread"
 MODEL = LM_STUDIO_MODEL
 
 PROMPT_TEMPLATE = """You are a proofreader for a Korean-to-English translated web novel called "If You Don't Become the Main Character, You'll Die".

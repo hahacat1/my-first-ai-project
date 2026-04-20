@@ -11,13 +11,14 @@ Run AFTER proofreading is complete:
     python3 proofreader/enrich_titles.py --dry-run   # preview only
 """
 
+from __future__ import annotations
 import argparse
 import os
 import re
 from openai import OpenAI
 from pipeline.config import LM_STUDIO_URL, LM_STUDIO_MODEL
 
-PROOFREAD_DIR = "output/proofread"
+PROOFREAD_DIR = "novels/if-you-dont-become-the-main-character-youll-die/proofread"
 VOICE_DIR = None  # set via CLI --voice-dir or pipeline call; mp3 rename is skipped if None
 MODEL = LM_STUDIO_MODEL
 
@@ -27,8 +28,13 @@ _BARE_TITLE = re.compile(r'^Episode \d+$', re.IGNORECASE)
 _INVALID_CHARS = re.compile(r'[<>:"/\\|?*\n\r]')
 
 
+MAX_TITLE_LEN = 60
+
 def _sanitize(title: str) -> str:
-    return _INVALID_CHARS.sub('', title).strip().rstrip('.')
+    cleaned = _INVALID_CHARS.sub('', title).strip().rstrip('.')
+    if len(cleaned) > MAX_TITLE_LEN:
+        cleaned = cleaned[:MAX_TITLE_LEN].rsplit(' ', 1)[0]
+    return cleaned
 
 
 def _generate_subtitle(body: str) -> str:
@@ -86,7 +92,12 @@ def run(dry_run: bool = False,
         with open(in_path, encoding="utf-8") as f:
             text = f.read()
 
-        display_title, updated_text = enrich_title(num, text)
+        try:
+            display_title, updated_text = enrich_title(num, text)
+        except Exception as e:
+            print(f"  [{num:03d}] LLM error, using fallback title: {e}")
+            display_title = f"Episode {num}"
+            updated_text = text
         safe_title = _sanitize(display_title)
         new_name = f"Chapter {num:03d} - {safe_title}.txt"
         new_path = os.path.join(proofread_dir, new_name)
@@ -99,7 +110,10 @@ def run(dry_run: bool = False,
         if not dry_run:
             with open(in_path, "w", encoding="utf-8") as f:
                 f.write(updated_text)
-            os.rename(in_path, new_path)
+            try:
+                os.rename(in_path, new_path)
+            except OSError as e:
+                print(f"  [{num:03d}] Rename failed ({e}), skipping")
 
             if voice_dir:
                 mp3_old = os.path.join(voice_dir, filename.replace(".txt", ".mp3"))

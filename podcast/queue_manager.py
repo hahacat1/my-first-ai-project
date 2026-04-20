@@ -2,10 +2,12 @@
 Tracks which episodes have been published and what's queued next.
 Saves state to podcast/publish_queue.json
 """
+from __future__ import annotations
 
 import os
 import re
 import json
+import mutagen
 from datetime import datetime, timezone
 
 QUEUE_FILE = "podcast/publish_queue.json"
@@ -105,13 +107,22 @@ def mark_published(files: list[str], archive_urls: dict):
 
     for ep in state["queued"]:
         if ep["file"] in files and ep["file"] not in published_files:
+            url = archive_urls.get(ep["file"], "")
+            if not url:
+                # Upload failed — keep in queue for retry
+                remaining_queue.append(ep)
+                continue
             ep["published_at"] = datetime.now(timezone.utc).isoformat()
-            ep["audio_url"] = archive_urls.get(ep["file"], "")
-            # Capture file size now while the local file still exists
+            ep["audio_url"] = url
             try:
                 ep["file_size"] = os.path.getsize(ep["path"])
             except OSError:
                 ep["file_size"] = 0
+            try:
+                audio = mutagen.File(ep["path"])
+                ep["duration_seconds"] = int(audio.info.length) if audio else 0
+            except Exception:
+                ep["duration_seconds"] = 0
             state["published"].append(ep)
             newly_published.append(ep)
         else:

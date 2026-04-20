@@ -10,12 +10,17 @@
   <atom:link href="https://hahacat1.github.io/my-first-ai-project/feed.xml" rel="self" type="application/rss+xml"
     xmlns:atom="http://www.w3.org/2005/Atom"/>
   <itunes:author>WebNovel AI Studio</itunes:author>
+  <itunes:owner>
+    <itunes:name>WebNovel AI Studio</itunes:name>
+    <itunes:email>jim.li.wu@hotmail.com</itunes:email>
+  </itunes:owner>
   <itunes:image href="https://hahacat1.github.io/my-first-ai-project/cover.jpg"/>
   <image><url>https://hahacat1.github.io/my-first-ai-project/cover.jpg</url><title>If You Don't Become the Main Character, You'll Die</title></image>
   <itunes:category text="Arts">
     <itunes:category text="Books"/>
   </itunes:category>
   <itunes:explicit>false</itunes:explicit>
+  <itunes:type>episodic</itunes:type>
   
   <item>
     <title>If You Don't Become the Main Character, You'll Die — Episode 5 The Afterlife of the Good Person</title>

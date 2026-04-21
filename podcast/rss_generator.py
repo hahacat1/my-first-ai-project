@@ -15,30 +15,35 @@ import mutagen
 from datetime import datetime, timezone, timedelta
 from email.utils import format_datetime
 
-QUEUE_FILE = "podcast/publish_queue.json"
 RSS_OUTPUT = "docs/feed.xml"
 
-# Update these in podcast/podcast_config.json after setup
 DEFAULT_CONFIG = {
     "podcast_title": "If You Don't Become the Main Character, You'll Die",
     "podcast_description": "AI-narrated audiobook of the top-ranked Korean web novel.",
     "podcast_author": "WebNovel AI Studio",
     "podcast_language": "en-us",
-    "cover_art_url": "",          # paste your cover art URL here after uploading it
-    "github_pages_url": "",       # e.g. https://yourusername.github.io/my-first-ai-project
+    "cover_art_url": "",
+    "github_pages_url": "",
 }
 
 
-def _load_config() -> dict:
-    config_path = "podcast/podcast_config.json"
-    if os.path.exists(config_path):
-        with open(config_path) as f:
+def _config_path(novel_dir: str) -> str:
+    return os.path.join(novel_dir, "podcast", "podcast_config.json")
+
+
+def _queue_path(novel_dir: str) -> str:
+    return os.path.join(novel_dir, "podcast", "publish_queue.json")
+
+
+def _load_config(novel_dir: str) -> dict:
+    path = _config_path(novel_dir)
+    if os.path.exists(path):
+        with open(path) as f:
             return {**DEFAULT_CONFIG, **json.load(f)}
-    # Create default config on first run
-    os.makedirs("podcast", exist_ok=True)
-    with open(config_path, "w") as f:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
         json.dump(DEFAULT_CONFIG, f, indent=2)
-    print(f"  Config created at {config_path} — fill in cover_art_url and github_pages_url!")
+    print(f"  Config created at {path} — fill in cover_art_url and github_pages_url!")
     return DEFAULT_CONFIG
 
 
@@ -60,15 +65,15 @@ def _get_file_size(path: str) -> int:
         return 0
 
 
-def generate_rss() -> str:
+def generate_rss(novel_dir: str) -> str:
     """Build RSS XML from published episodes and write to docs/feed.xml."""
-    config = _load_config()
+    config = _load_config(novel_dir)
     os.makedirs("docs", exist_ok=True)
 
-    state = json.load(open(QUEUE_FILE)) if os.path.exists(QUEUE_FILE) else {"published": []}
+    queue_file = _queue_path(novel_dir)
+    state = json.load(open(queue_file)) if os.path.exists(queue_file) else {"published": []}
     published = sorted(state["published"], key=lambda e: e["episode"])
 
-    # Space episodes 1 day apart going backwards from now
     now = datetime.now(timezone.utc)
     items_xml = ""
 
@@ -79,14 +84,17 @@ def generate_rss() -> str:
         else:
             pub_date = now - timedelta(days=i)
         audio_url = ep.get("audio_url", "")
-        # Use size captured at publish time; fall back to live file if available
         file_size = ep.get("file_size") or _get_file_size(ep.get("path", ""))
         duration = _get_mp3_duration(ep.get("path", ""))
+        # Use generated synopsis if available, else fall back to title
+        ep_title = ep["title"].split(" — ", 1)[-1] if " — " in ep["title"] else ep["title"]
+        description = _escape(ep.get("synopsis") or ep_title)
 
         items_xml += f"""
   <item>
-    <title>{_escape(ep['title'])}</title>
-    <description>{_escape(ep['title'])}</description>
+    <title>{_escape(ep_title)}</title>
+    <description>{description}</description>
+    <itunes:summary>{description}</itunes:summary>
     <enclosure url="{audio_url}" length="{file_size}" type="audio/mpeg"/>
     <guid isPermaLink="false">{audio_url}</guid>
     <pubDate>{format_datetime(pub_date)}</pubDate>
@@ -119,6 +127,8 @@ def generate_rss() -> str:
   <itunes:category text="Arts">
     <itunes:category text="Books"/>
   </itunes:category>
+  <itunes:subtitle>{_escape(config.get('podcast_subtitle', ''))}</itunes:subtitle>
+  <itunes:keywords>{_escape(config.get('podcast_keywords', ''))}</itunes:keywords>
   <itunes:explicit>false</itunes:explicit>
   <itunes:type>episodic</itunes:type>
   {items_xml}

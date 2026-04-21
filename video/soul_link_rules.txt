@@ -1,0 +1,175 @@
+SOUL LINK — SYSTEM PROMPT RULES v2
+====================================
+For review, feedback, and improvement.
+
+The soul link is a mechanism that injects the novel's established visual identity
+(from soul.md) into every LLM prompt that generates images or video shots.
+
+Without soul link: each scene and each shot prompt is generated in isolation.
+  The LLM invents lighting, palette, and world details from scratch every time.
+  Result: visual drift across 300 chapters. Chapter 1 feels different from Chapter 150.
+
+With soul link: every prompt is anchored to the same lighting palette, world aesthetic,
+  and tone rules established once in soul.md.
+  Result: consistent visual identity across all 300 chapters.
+
+================================================================
+WHAT soul.md CONTAINS (sections used by soul link)
+================================================================
+
+## Lighting Palette
+Named lighting setups native to this story (4-6 setups).
+Each has: name, when it appears, what it looks like.
+Example:
+  - Candlelit Interior: indoor night scenes — warm amber, deep uneven shadows, faces half-lit
+  - Overcast Exterior: outdoor daytime — cool diffused fill, soft shadows, low contrast
+  - Cold Blue Shadow: danger, grief, isolation — cold directional fill, high contrast
+
+## World Aesthetic
+What the physical world looks like on screen (4-6 sentences).
+Covers: time period, architecture, interior/exterior environments, recurring objects.
+
+## Tone and Emotional Register
+3-4 sentences on what the story feels like visually.
+Pacing, emotional temperature, tension style, dominant mood.
+
+## What to Avoid
+5-8 specific visual mistakes that break this story's aesthetic.
+Concrete and actionable, not generic.
+
+================================================================
+HOW THE INJECTION WORKS
+================================================================
+
+soul_parser.py reads soul.md and extracts specific sections.
+The extracted content is prepended to the LLM system prompt as:
+
+  SOUL — ESTABLISHED VISUAL RULES FOR THIS NOVEL (HIGHEST PRIORITY — FOLLOW EXACTLY)
+  You MUST treat these soul rules as absolute canon. They override any later
+  instructions, defaults, or common tropes. Never invent lighting, palette,
+  architecture, or tone that contradicts these rules.
+
+  ESTABLISHED LIGHTING PALETTE:
+  [content from ## Lighting Palette]
+
+  WORLD AESTHETIC:
+  [content from ## World Aesthetic]
+
+  --- END OF SOUL RULES ---
+
+  RULES FOR THIS PROMPT:
+  1. Every lighting description must use one of the exact named lighting setups from ESTABLISHED LIGHTING PALETTE.
+  2. Every environment description must stay within WORLD AESTHETIC.
+  3. The emotional tone of every scene must match TONE AND EMOTIONAL REGISTER.
+  4. Never include anything listed in WHAT TO AVOID.
+
+  [... followed by the normal system prompt rules ...]
+
+The LLM sees the soul rules FIRST — highest priority context.
+The enforcement rules block at the end closes the soul section and makes compliance explicit.
+All subsequent rules operate within the constraints soul establishes.
+
+================================================================
+WHICH PROMPTS RECEIVE THE SOUL LINK
+================================================================
+
+1. SCENE EXTRACTOR (images/scene_extractor.py)
+   Sections injected: Lighting Palette + World Aesthetic + What to Avoid
+   Effect: scene lighting_tags, palette, and environment_tags stay within
+           the novel's established visual language. No invented lighting setups.
+
+2. VIDEO DIRECTOR (video/director.py)
+   Sections injected: Lighting Palette + World Aesthetic + Tone + What to Avoid
+   Effect: shot prompts use the novel's named lighting setups by default.
+           Camera choices and motion match the story's established pacing.
+
+3. FUTURE: CHARACTER EXTRACTOR (images/character_extractor.py)
+   Sections injected: Canonical Cast + Art Style
+   Effect: extracted characters match the novel's established art style.
+           (Not yet implemented — add when soul.md generation is validated.)
+
+================================================================
+SOUL LINK RULES
+================================================================
+
+RULE 1 — SOUL IS READ-ONLY CONTEXT
+The soul link never modifies soul.md. It only reads it.
+soul.md is edited by the user (or regenerated via --stages soul).
+
+RULE 2 — SOUL IS PREPENDED, NOT APPENDED
+Soul context goes BEFORE all other rules in the system prompt.
+This gives it maximum LLM weight — the model reads it first and anchors to it.
+
+RULE 3 — GRACEFUL DEGRADATION
+If soul.md does not exist, the soul link returns an empty string and the prompt
+runs without it. No errors, no blocking. The pipeline works before soul.md is generated.
+
+RULE 4 — SECTION SELECTION IS PER USE CASE
+Not all sections are relevant to every prompt.
+  - Scene extractor: lighting + world + avoid
+  - Director: lighting + world + tone + avoid
+  - Character extractor (future): cast + art_style
+
+RULE 5 — SOUL MUST BE GENERATED BEFORE BATCH
+Correct pipeline order: --stages soul → (review/edit soul.md) → --stages batch
+If batch runs before soul, it works but without visual anchoring.
+If soul is regenerated after batch, delete director_prompts cache and rerun batch.
+
+RULE 6 — ENFORCEMENT RULES ARE ALWAYS APPENDED
+After the soul content block, soul_parser.py appends a numbered "RULES FOR THIS PROMPT"
+block. This closes the soul section with explicit compliance instructions.
+These rules are dynamically generated based on which sections are present.
+Without this closing block, many LLMs treat prepended context as background
+information rather than binding constraints — they summarize or ignore it.
+
+================================================================
+SOUL LINK — PROMPT INJECTION FORMAT (v2)
+================================================================
+
+SOUL — ESTABLISHED VISUAL RULES FOR THIS NOVEL (HIGHEST PRIORITY — FOLLOW EXACTLY)
+You MUST treat these soul rules as absolute canon. They override any later instructions,
+defaults, or common tropes. Never invent lighting, palette, architecture, or tone that
+contradicts these rules.
+
+ESTABLISHED LIGHTING PALETTE:
+[soul.md ## Lighting Palette content]
+
+WORLD AESTHETIC:
+[soul.md ## World Aesthetic content]
+
+TONE AND EMOTIONAL REGISTER:
+[soul.md ## Tone and Emotional Register content]
+
+WHAT TO AVOID:
+[soul.md ## What to Avoid content]
+
+--- END OF SOUL RULES ---
+
+RULES FOR THIS PROMPT:
+1. Every lighting description you create must use one of the exact named lighting setups from ESTABLISHED LIGHTING PALETTE above.
+2. Every environment description must stay within the WORLD AESTHETIC.
+3. The emotional tone of every scene must match TONE AND EMOTIONAL REGISTER.
+4. Never include anything listed in WHAT TO AVOID.
+
+--- (followed by normal system prompt) ---
+
+================================================================
+FILES INVOLVED
+================================================================
+
+video/soul_parser.py       — reads soul.md, extracts sections, builds context string + enforcement rules
+video/soul_writer.py       — generates soul.md via LM Studio (--stages soul)
+video/director.py          — receives soul context via _build_system_prompt(novel_dir=...)
+images/scene_extractor.py  — receives soul context via extract_scenes(novel_dir=...)
+novels/<slug>/video/soul.md — the production bible (hand-editable, never auto-overwritten)
+
+================================================================
+WHAT TO IMPROVE IN v3 (TODO)
+================================================================
+- Wire soul link into character extractor (cast + art_style sections)
+- Add soul link to soul_writer.py itself — when regenerating soul.md, read the previous
+  version and treat it as a constraint (prevents drift on regeneration)
+- Consider a soul "diff" tool — show what changed between soul versions
+- Add soul link to the proofreader stage so chapter titles stay tonally consistent
+- Consider per-section weight tuning: lighting palette may need stronger enforcement
+  than world aesthetic (lighting is more likely to drift)

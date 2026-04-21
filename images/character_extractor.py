@@ -1,12 +1,13 @@
 """
 Uses LM Studio to scan proofread chapters and build detailed anime character profiles.
-Acts as an anime art director to extract rich visual descriptions for ComfyUI generation.
+Acts as an anime character designer to extract precise visual descriptions for ComfyUI.
 Scans ALL chapters to catch characters introduced later in the story.
 """
 
 from __future__ import annotations
 import os
 import json
+import re
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -15,108 +16,317 @@ from pipeline.config import LM_STUDIO_URL, LM_STUDIO_MODEL
 
 client = OpenAI(base_url=LM_STUDIO_URL, api_key="lm-studio")
 
-EXTRACT_PROMPT = """You are an expert anime art director and character designer with 20 years of experience.
+EXTRACT_SYSTEM = """You are a professional anime character designer creating reference sheets for a ComfyUI Stable Diffusion pipeline.
 
-Read this excerpt from a Korean web novel and extract every named character with a physical description.
+Read the chapter excerpt and extract EVERY named character who has at least one explicit physical detail (hair, eyes, build, clothing, face, expression).
 
-For each character, provide an ANIME-STYLE visual description that could be used to generate a character portrait in Stable Diffusion. Be specific and detailed about:
-- Age appearance (teenager, young adult, middle-aged, elderly)
-- Hair: color, length, style (e.g. "long silver hair with loose waves", "short messy black hair")
-- Eyes: color and shape (e.g. "sharp crimson eyes", "gentle blue eyes with long lashes")
-- Build: height and body type (e.g. "tall slender build", "petite feminine figure", "muscular broad-shouldered")
-- Skin tone (e.g. "pale porcelain skin", "warm tan complexion")
-- Clothing/outfit style (e.g. "elegant dark noble robes with gold trim", "worn leather adventurer gear")
-- Notable features (scars, accessories, aura, expression tendency)
-- Personality hint visible in appearance (e.g. "cold sharp gaze", "warm gentle smile")
+RULES — violate any and the output becomes unusable:
 
-Format as JSON array:
+RULE 1 — ONLY EXTRACT VISUALLY DESCRIBED CHARACTERS
+Only characters with at least one explicit physical detail. Never invent or assume. If named but no physical description, skip entirely.
+
+RULE 2 — EYE COLOR IS MANDATORY
+Must include explicit or narratively appropriate eye color. If not stated: dark brown (East Asian-coded), grey or brown (European-coded), warm hazel (ambiguous).
+Format exactly: "dark brown eyes", "grey eyes", "warm hazel eyes"
+Never leave unspecified — SD defaults to glowing red or electric blue.
+
+RULE 3 — CLOTHING MUST MATCH STATUS
+Clothing must exactly reflect occupation, social status, and scene context. Infer only from text. Never default to noble/elegant unless explicitly stated.
+- Poor / street character: worn simple clothes, patched fabric, rough linen
+- Merchant: practical layered clothes, modest quality
+- Noble: fine tailored fabric, subtle ornamentation — ONLY if text explicitly states nobility
+- Guard / soldier: functional uniform, not decorative unless stated
+
+RULE 4 — PURE BOORU TAGS ONLY
+All tag fields must be comma-separated Danbooru-style tags. No sentences. No prose. No "he has".
+Good: "dark brown messy hair, wide dark brown eyes, pale skin, worn linen shirt, slim build"
+Bad: "He has messy dark hair and looks confused with wide eyes"
+
+RULE 5 — CLOTHING NEGATIVE FIELD
+Always include clothing_negative to block wrong outfits and SD style bleed.
+Always add these base terms at the end: realistic, photorealistic, 3d render, photograph
+
+RULE 6 — ROLE ASSIGNMENT
+protagonist: main POV character or hero
+antagonist: actively opposes protagonist with power or threat
+supporting: recurring named character with story importance
+minor: appears once or briefly
+
+RULE 7 — FACTUAL DESCRIPTION ONLY
+"description" = single clean paragraph, facts only. No "appears to", "seems", "looks like", "might be".
+Wrong: "He appears to be a young man who seems confused"
+Right: "Young adult male, slim build, pale skin, dark brown messy hair falling across his forehead, wide dark brown eyes, perpetually dazed expression"
+
+RULE 8 — AGE AS FEEL, NOT EXACT
+Use only: child, young teenager, teenager, young adult, mid-twenties, late twenties, mid-thirties, middle-aged, elderly.
+
+RULE 9 — master_tags IS THE SINGLE SOURCE OF TRUTH
+master_tags is the one clean repeatable booru string used in every future ComfyUI generation.
+Must include: hair + eye color + skin tone + build + clothing summary + expression.
+This is what gets pasted into ComfyUI every single time. Make it complete and exact.
+A valid master_tags has at least 6 comma-separated tags.
+
+RULE 10 — character_trigger MUST BE UNIQUE AND SAFE
+character_trigger is a 1-3 word snake_case identifier for future LoRA training.
+Format: firstname_trait or nickname_role. Examples: "dazed_leo", "cold_innkeeper", "scarred_captain"
+Never use a single common English word alone (bad: "hero", "boy", "man").
+Never use punctuation other than underscores.
+Must be lowercase only.
+
+RULE 11 — UNNAMED RECURRING CHARACTERS
+If a character is referred to only by title ("the innkeeper", "the blacksmith") but appears with physical details, assign a temporary name in format "Innkeeper_001" for this extraction only. The refinement step will merge them later.
+
+Output ONLY a valid JSON array. No explanation, no code fences, no extra text before or after the array.
 [
-  {{
-    "name": "Character Name",
+  {
+    "name": "Exact Character Name",
     "role": "protagonist/antagonist/supporting/minor",
-    "description": "detailed anime visual description as one paragraph",
-    "tags": "comma-separated SD tags: hair color, eye color, clothing style, body type, expression"
-  }}
-]
+    "character_trigger": "unique_trigger",
+    "description": "single factual paragraph",
+    "eye_color": "dark brown eyes",
+    "clothing": "worn linen shirt, patched trousers, simple leather belt",
+    "clothing_negative": "noble robes, armor, gold trim, military uniform, crown, realistic, photorealistic, 3d render, photograph",
+    "default_expression": "perpetually dazed, slightly confused",
+    "tags": "slim build, pale skin, dark brown messy hair, wide dark brown eyes, worn linen shirt",
+    "master_tags": "slim build, pale skin, dark brown messy hair falling across forehead, wide dark brown eyes, perpetually dazed expression, worn linen shirt, patched trousers, simple leather belt"
+  }
+]"""
 
-Only include characters with enough physical description to draw them. Return ONLY the JSON array.
+EXTRACT_USER = """Extract all visually described characters from this chapter text.
 
 TEXT:
 {text}"""
 
-REFINE_PROMPT = """You are an expert anime art director. You have collected descriptions of the same character from multiple chapters of a novel.
+REFINE_SYSTEM = """You are merging multiple scene-by-scene descriptions of the SAME character into one definitive ComfyUI reference sheet.
 
-Merge these descriptions into ONE definitive character profile. Keep the most specific and consistent details. Resolve any contradictions by preferring the most detailed description.
+RULES:
 
-Character: {name}
-Descriptions collected:
-{descriptions}
+RULE 1 — FIRST APPEARANCE HAS PRIORITY
+The first description is the most canonical. Use it as the base. Later descriptions only add detail or resolve gaps — they do not override unless more explicit.
 
-Return a single JSON object:
-{{
-  "name": "{name}",
-  "role": "protagonist/antagonist/supporting/minor",
-  "description": "definitive detailed anime visual description as one paragraph",
-  "tags": "comma-separated SD tags: hair color, eye color, clothing style, body type, expression"
-}}
+RULE 2 — RESOLVE CONFLICTS: explicit > most frequent > most detailed
+If one chapter says "brown eyes" and another doesn't mention eyes, use "brown eyes".
+If clothing varies, use the outfit worn most often across all descriptions. Do not use rare or dramatic outfits as the default.
 
-Return ONLY the JSON object."""
+RULE 3 — NEVER INVENT
+Only merge what is in the provided descriptions. Do not add details absent from all sources.
+
+RULE 4 — EYE COLOR MUST ALWAYS BE PRESENT
+If any source mentions eye color, it must appear in the final output.
+
+RULE 5 — CLOTHING = DEFAULT APPEARANCE
+The outfit worn most often across all descriptions, not the most dramatic or formal one.
+
+RULE 6 — CLOTHING NEGATIVE MUST BE COMPREHENSIVE
+Combine ALL clothing_negative tags from every description. Remove duplicates. Always include at the end: realistic, photorealistic, 3d render, photograph.
+
+RULE 7 — master_tags IS THE PRIORITY OUTPUT
+master_tags is the single clean repeatable booru string for every future ComfyUI generation.
+Must be complete: hair + eyes + skin + build + clothing + expression. At least 6 comma-separated tags. Make it the best possible.
+
+Output ONLY a single valid JSON object. No explanation, no code fences, no extra text.
+{
+  "name": "...",
+  "role": "...",
+  "character_trigger": "...",
+  "description": "...",
+  "eye_color": "...",
+  "clothing": "...",
+  "clothing_negative": "...",
+  "default_expression": "...",
+  "tags": "...",
+  "master_tags": "..."
+}"""
+
+REFINE_USER = """Merge these descriptions of {name} into one definitive profile.
+
+Descriptions:
+{descriptions}"""
+
+DEDUP_SYSTEM = """You are given a list of character names extracted from a webnovel, with mention counts.
+Many entries refer to the same character under different names, titles, or partial names.
+
+Return a JSON object mapping each CANONICAL name to a list of ALIASES that should be merged into it.
+Only include groups with 2+ members. Omit singletons.
+
+HARD RULES — violate any and the merge is wrong:
+
+1. POSSESSIVE = DIFFERENT PERSON. If the alias contains an apostrophe-s possessive referencing the canonical name, they are DIFFERENT people. Never merge them.
+   BAD: "Count Bermont's Henchman #1" → "Count Bermont"  (henchman ≠ the count)
+   BAD: "Viscount's subordinate" → "Viscount"
+
+2. NAMES MUST SHARE A ROOT WORD. Canonical and alias must share at least one name/word, OR the alias must be an obvious title variant of the canonical.
+   GOOD: "Archbishop Butier" → "Butier"  (shares "Butier")
+   GOOD: "Ferdinand Ertinez" → "Ferdinand"  (shares "Ferdinand")
+   BAD: "Evil Dragon Vernis" → "Leonardo"  (no shared word; different entity type)
+   BAD: "Lord Roald" → "Orlie"  (no shared word)
+
+3. ENTITY TYPE MUST MATCH. A dragon, monster, or creature cannot be the same character as a human.
+
+4. WHEN UNCERTAIN, DO NOT MERGE. Only merge when you are confident. A wrong merge destroys a character profile permanently.
+
+5. CANONICAL = HIGHEST MENTION COUNT. If tied, use the most complete formal name.
+
+6. PARENTHETICAL VARIANTS ARE SAFE. "(protagonist)", "(disguised)", "(young)", "(original)" suffixes on the same base name are safe to merge.
+   GOOD: "Isaac (protagonist)" → "Isaac"
+   GOOD: "Leonardo (young)" → "Leonardo"
+
+7. "protagonist" / "I" / "narrator" variants: merge into the named character with most mentions.
+
+Output ONLY a valid JSON object. No explanation, no code fences.
+{"CanonicalName": ["Alias1", "Alias2"], ...}"""
 
 
-def _extract_from_chunk(text: str) -> list[dict]:
-    """Extract characters from a text chunk via LM Studio."""
+def _dedup_profiles(all_profiles: dict) -> dict:
+    """Merge case-duplicate and semantically-duplicate character names before refinement."""
+
+    # Step 1: Case/spacing normalization (deterministic)
+    normalized: dict[str, list[str]] = {}
+    for name in list(all_profiles.keys()):
+        key = name.lower().strip()
+        normalized.setdefault(key, []).append(name)
+
+    for variants in normalized.values():
+        if len(variants) > 1:
+            canonical = max(variants, key=lambda n: len(all_profiles[n]))
+            for alias in variants:
+                if alias != canonical and alias in all_profiles:
+                    all_profiles[canonical].extend(all_profiles.pop(alias))
+                    print(f"    Case merge: '{alias}' → '{canonical}'")
+
+    # Step 2: Semantic dedup via LLM
+    name_counts = sorted(
+        ((name, len(profiles)) for name, profiles in all_profiles.items()),
+        key=lambda x: -x[1],
+    )
+    names_text = "\n".join(f"{name} ({count} mentions)" for name, count in name_counts)
+
     try:
         resp = client.chat.completions.create(
             model=LM_STUDIO_MODEL,
-            messages=[{"role": "user", "content": EXTRACT_PROMPT.format(text=text)}],
+            messages=[
+                {"role": "system", "content": DEDUP_SYSTEM},
+                {"role": "user", "content": f"Character names:\n{names_text}"},
+            ],
+            temperature=0.1,
+            max_tokens=1000,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if "<think>" in raw:
+            raw = raw.split("</think>")[-1].strip()
+        if "```" in raw:
+            raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start == -1 or end == 0:
+            return all_profiles
+        merges: dict = json.loads(raw[start:end])
+        for canonical, aliases in merges.items():
+            if canonical not in all_profiles:
+                continue
+            canonical_words = set(canonical.lower().split())
+            for alias in aliases:
+                if alias not in all_profiles or alias == canonical:
+                    continue
+                # Safety: never merge possessives (alias contains canonical + 's)
+                if f"{canonical.lower()}'s" in alias.lower():
+                    print(f"    Skipped possessive: '{alias}' → '{canonical}'")
+                    continue
+                # Safety: require at least one shared word between names
+                alias_words = set(alias.lower().split())
+                shared = canonical_words & alias_words - {"the", "a", "an", "of", "and"}
+                if not shared:
+                    print(f"    Skipped (no shared root): '{alias}' → '{canonical}'")
+                    continue
+                all_profiles[canonical].extend(all_profiles.pop(alias))
+                print(f"    Semantic merge: '{alias}' → '{canonical}'")
+    except Exception as e:
+        print(f"    Semantic dedup LLM call failed ({e}), skipping")
+
+    return all_profiles
+
+
+def _extract_from_chunk(text: str) -> list[dict]:
+    try:
+        resp = client.chat.completions.create(
+            model=LM_STUDIO_MODEL,
+            messages=[
+                {"role": "system", "content": EXTRACT_SYSTEM},
+                {"role": "user", "content": EXTRACT_USER.format(text=text)},
+            ],
             temperature=0.2,
             max_tokens=2000,
         )
         raw = resp.choices[0].message.content.strip()
+        if "<think>" in raw:
+            raw = raw.split("</think>")[-1].strip()
         if "```" in raw:
-            raw = raw.split("```")[1].replace("json", "").strip()
-        # Find JSON array
+            raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
         start = raw.find("[")
         end = raw.rfind("]") + 1
         if start == -1 or end == 0:
             return []
         return json.loads(raw[start:end])
-    except Exception as e:
+    except Exception:
         return []
 
 
-def _refine_character(name: str, descriptions: list[str]) -> dict | None:
-    """Ask LM Studio to merge multiple descriptions into one definitive profile."""
-    if len(descriptions) == 1:
-        return None  # No need to merge
+def _validate_character(char: dict) -> dict:
+    """Ensure required fields exist and master_tags meets minimum quality bar."""
+    if not char.get("master_tags") or len(char["master_tags"].split(",")) < 6:
+        # Assemble from parts if master_tags is missing or too short
+        parts = [
+            char.get("tags", ""),
+            char.get("eye_color", ""),
+            char.get("clothing", ""),
+        ]
+        char["master_tags"] = ", ".join(p for p in parts if p)
+    if not char.get("eye_color"):
+        char["eye_color"] = "dark brown eyes"
+    if not char.get("character_trigger"):
+        slug = char.get("name", "character").lower().replace(" ", "_")[:20]
+        char["character_trigger"] = f"{slug}_char"
+    return char
+
+
+def _refine_character(name: str, raw_profiles: list[dict]) -> dict | None:
+    if len(raw_profiles) == 1:
+        return _validate_character(raw_profiles[0])
+    descriptions = "\n---\n".join([
+        json.dumps(p, ensure_ascii=False, indent=2) for p in raw_profiles
+    ])
     try:
         resp = client.chat.completions.create(
             model=LM_STUDIO_MODEL,
-            messages=[{"role": "user", "content": REFINE_PROMPT.format(
-                name=name,
-                descriptions="\n---\n".join(descriptions)
-            )}],
+            messages=[
+                {"role": "system", "content": REFINE_SYSTEM},
+                {"role": "user", "content": REFINE_USER.format(
+                    name=name, descriptions=descriptions
+                )},
+            ],
             temperature=0.1,
-            max_tokens=600,
+            max_tokens=800,
         )
         raw = resp.choices[0].message.content.strip()
+        if "<think>" in raw:
+            raw = raw.split("</think>")[-1].strip()
         if "```" in raw:
-            raw = raw.split("```")[1].replace("json", "").strip()
+            raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
         start = raw.find("{")
         end = raw.rfind("}") + 1
         if start == -1 or end == 0:
             return None
-        return json.loads(raw[start:end])
+        result = json.loads(raw[start:end])
+        return _validate_character(result)
     except Exception:
         return None
 
 
 def extract_characters(proofread_dir: str, seed_characters: list = None,
-                        batch_size: int = 30) -> list:
+                       batch_size: int = 30) -> list:
     """
-    Scan proofread chapters in batches and extract detailed anime character profiles.
-    Saves progress after each batch — safe to resume if LM Studio stalls.
-    Default: first 30 chapters (covers the full main cast for most novels).
+    Scan proofread chapters and extract detailed anime character profiles.
+    Saves progress after each chapter — safe to resume if interrupted.
     """
     chapters = sorted([
         f for f in os.listdir(proofread_dir)
@@ -126,76 +336,69 @@ def extract_characters(proofread_dir: str, seed_characters: list = None,
     novel_dir = os.path.dirname(proofread_dir)
     progress_file = os.path.join(novel_dir, "characters_progress.json")
 
-    # Resume from saved progress if it exists
     if os.path.exists(progress_file):
         with open(progress_file) as f:
             saved = json.load(f)
-        all_mentions: dict[str, list[str]] = saved.get("mentions", {})
+        all_profiles: dict[str, list[dict]] = saved.get("profiles", {})
         scanned = saved.get("scanned", 0)
-        print(f"  Resuming from chapter {scanned + 1} ({len(all_mentions)} characters found so far)")
+        print(f"  Resuming from chapter {scanned + 1} ({len(all_profiles)} characters found so far)")
     else:
-        all_mentions = {}
+        all_profiles = {}
         scanned = 0
 
-    to_scan = chapters[scanned:scanned + batch_size]
-    print(f"  Scanning chapters {scanned + 1}–{scanned + len(to_scan)} of {len(chapters)} (batch of {batch_size})...")
+    chunk_size = 4000
+    total = len(chapters)
 
-    chunk_size = 4000  # words per LM Studio call
+    # Process all remaining chapters in batches, saving progress after each batch
+    while scanned < total:
+        batch_end = min(scanned + batch_size, total)
+        to_scan = chapters[scanned:batch_end]
+        print(f"  Scanning chapters {scanned + 1}–{batch_end} of {total}...")
 
-    for i, ch in enumerate(to_scan, 1):
-        with open(os.path.join(proofread_dir, ch), encoding="utf-8") as f:
-            text = f.read()
+        for i, ch in enumerate(to_scan, 1):
+            with open(os.path.join(proofread_dir, ch), encoding="utf-8") as f:
+                text = f.read()
 
-        words = text.split()
-        for start in range(0, len(words), chunk_size):
-            chunk = " ".join(words[start:start + chunk_size])
-            chars = _extract_from_chunk(chunk)
-            for c in chars:
-                name = c.get("name", "").strip()
-                desc = c.get("description", "").strip()
-                if name and desc:
-                    all_mentions.setdefault(name, [])
-                    if desc not in all_mentions[name]:
-                        all_mentions[name].append(desc)
+            words = text.split()
+            for start in range(0, len(words), chunk_size):
+                chunk = " ".join(words[start:start + chunk_size])
+                chars = _extract_from_chunk(chunk)
+                for c in chars:
+                    name = c.get("name", "").strip()
+                    if not name:
+                        continue
+                    all_profiles.setdefault(name, [])
+                    all_profiles[name].append(c)
 
-        print(f"    [{i}/{len(to_scan)}] {ch[:50]} — {len(all_mentions)} characters total")
+            print(f"    [{scanned + i}/{total}] {ch[:50]} — {len(all_profiles)} characters total")
 
-        # Save progress after every chapter
-        with open(progress_file, "w") as f:
-            json.dump({"mentions": all_mentions, "scanned": scanned + i}, f)
+            with open(progress_file, "w") as f:
+                json.dump({"profiles": all_profiles, "scanned": scanned + i}, f)
 
-    print(f"  Scan complete. Found {len(all_mentions)} unique characters. Refining profiles...")
+        scanned = batch_end
 
-    # Merge multiple descriptions per character into one definitive profile
+    print(f"  Scan complete. Deduplicating {len(all_profiles)} character names...")
+    all_profiles = _dedup_profiles(all_profiles)
+    print(f"  After dedup: {len(all_profiles)} unique characters. Refining...")
+
     final_characters = []
-    for name, descs in all_mentions.items():
-        if len(descs) > 1:
-            refined = _refine_character(name, descs)
-            if refined:
-                final_characters.append(refined)
-                print(f"    Refined: {name} ({len(descs)} sources)")
-                continue
-        # Single description or failed merge — use first/best description
-        final_characters.append({
-            "name": name,
-            "description": descs[0],
-            "tags": "",
-            "role": "supporting",
-        })
+    for name, profiles in all_profiles.items():
+        refined = _refine_character(name, profiles)
+        if refined:
+            final_characters.append(refined)
+            print(f"    Refined: {name} ({len(profiles)} sources)")
+        else:
+            final_characters.append(_validate_character(profiles[0]))
 
-    # Merge seed characters from config (they take priority)
     if seed_characters:
         seed_names = {c["name"] for c in seed_characters}
         final_characters = [c for c in final_characters if c["name"] not in seed_names]
         final_characters = seed_characters + final_characters
 
-    # Save master characters.json
-    novel_dir = os.path.dirname(proofread_dir)
     out_path = os.path.join(novel_dir, "characters.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(final_characters, f, indent=2, ensure_ascii=False)
 
-    # Save each character's prompt.txt in their own folder for review/editing
     from images.prompts import character_portrait_prompt
     chars_root = os.path.join(novel_dir, "characters")
     for char in final_characters:
@@ -207,13 +410,17 @@ def extract_characters(proofread_dir: str, seed_characters: list = None,
             positive, negative = character_portrait_prompt(char)
             with open(prompt_path, "w", encoding="utf-8") as f:
                 f.write(f"# Character: {char['name']}\n")
-                f.write(f"# Role: {char.get('role', 'supporting')}\n\n")
+                f.write(f"# Role: {char.get('role', 'supporting')}\n")
+                f.write(f"# Trigger: {char.get('character_trigger', '')}\n\n")
                 f.write(f"[DESCRIPTION]\n{char.get('description', '')}\n\n")
+                f.write(f"[EYE COLOR]\n{char.get('eye_color', '')}\n\n")
+                f.write(f"[CLOTHING]\n{char.get('clothing', '')}\n\n")
+                f.write(f"[DEFAULT EXPRESSION]\n{char.get('default_expression', '')}\n\n")
+                f.write(f"[MASTER TAGS]\n{char.get('master_tags', '')}\n\n")
                 f.write(f"[POSITIVE PROMPT]\n{positive}\n\n")
                 f.write(f"[NEGATIVE PROMPT]\n{negative}\n")
 
     print(f"  Characters saved: {out_path} ({len(final_characters)} total)")
     print(f"  Prompts written to: {chars_root}/<character_name>/prompt.txt")
-    print(f"  Review and edit prompts before running image generation.")
 
     return final_characters

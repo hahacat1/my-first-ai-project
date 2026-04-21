@@ -18,14 +18,7 @@ NOVELS = {
         "slug": "if-you-dont-become-the-main-character-youll-die",
         # Target audience & visual tone — shapes ComfyUI prompts
         "audience": "female (BL romance)",
-        "art_style": (
-            "Korean manhwa style, BL romance illustration, beautiful bishonen male characters, "
-            "European aristocratic fantasy clothing, noble suits cravats gold trim dark robes, "
-            "rich jewel tone color palette deep burgundy midnight blue soft rose gold, "
-            "delicate detailed lineart, large expressive eyes, elegant refined poses, "
-            "dramatic romantic lighting, opulent interior backgrounds, "
-            "official manhwa cover art quality, soft glowing skin, flowing hair"
-        ),
+        "art_style": "masterpiece, best quality, Korean manhwa, BL romance, elegant bishonen aesthetic, rich jewel tones, delicate lineart",
         # Key characters for portrait generation — add more as you read the novel
         "characters": [
             {
@@ -38,10 +31,36 @@ NOVELS = {
 
 # LM Studio model/URL — used for proofreading, title enrichment, and director prompts
 LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1")
-LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "qwen2.5-7b-instruct-1m")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "qwen3.5-9b")
 
 # Stable Diffusion (ComfyUI) local API
 COMFYUI_URL = "http://127.0.0.1:8188"
+
+# ComfyUI image generation settings
+# Checkpoint: AnimagineXL 4.0 (SDXL) — best free anime model
+SD_CHECKPOINT = os.getenv("SD_CHECKPOINT", "animagine-xl-4.0.safetensors")
+# VAE: SDXL native VAE for AnimagineXL
+SD_VAE = os.getenv("SD_VAE", "sdxl_vae.safetensors")
+# Sampler: DPM++ 2M Karras — sharper, more detailed than euler_ancestral for SDXL
+SD_SAMPLER = os.getenv("SD_SAMPLER", "dpmpp_2m")
+SD_SCHEDULER = os.getenv("SD_SCHEDULER", "karras")
+SD_STEPS = int(os.getenv("SD_STEPS", "35"))
+SD_CFG = float(os.getenv("SD_CFG", "7.0"))
+# Portrait resolution — 896x1152 is SDXL native aspect ratio for portraits
+SD_PORTRAIT_W = int(os.getenv("SD_PORTRAIT_W", "896"))
+SD_PORTRAIT_H = int(os.getenv("SD_PORTRAIT_H", "1152"))
+# Hires fix: upscale factor applied after base generation (1.0 = disabled)
+SD_HIRES_SCALE = float(os.getenv("SD_HIRES_SCALE", "1.5"))
+SD_HIRES_DENOISE = float(os.getenv("SD_HIRES_DENOISE", "0.5"))
+SD_HIRES_STEPS = int(os.getenv("SD_HIRES_STEPS", "20"))
+# IP-Adapter FaceID — SDXL version for AnimagineXL
+SD_IPADAPTER_MODEL = os.getenv("SD_IPADAPTER_MODEL", "ip-adapter-faceid-plusv2_sdxl.bin")
+SD_FACE_WEIGHT = float(os.getenv("SD_FACE_WEIGHT", "0.80"))
+# ControlNet OpenPose — pose consistency across front/¾ portraits
+SD_CONTROLNET_MODEL = os.getenv("SD_CONTROLNET_MODEL", "OpenPoseXL2.safetensors")
+SD_CONTROLNET_STRENGTH = float(os.getenv("SD_CONTROLNET_STRENGTH", "0.6"))
+# Real-ESRGAN upscale binary path (leave empty to skip post-processing upscale)
+REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", os.path.expanduser("~/bin/realesrgan-ncnn-vulkan"))
 
 # Higgsfield API — set in .env as HIGGSFIELD_API_KEY=your_key_here
 HIGGSFIELD_API_KEY = os.getenv("HIGGSFIELD_API_KEY", "")

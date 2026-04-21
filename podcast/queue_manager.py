@@ -1,6 +1,6 @@
 """
 Tracks which episodes have been published and what's queued next.
-Saves state to podcast/publish_queue.json
+State saved per-novel at novels/<slug>/podcast/publish_queue.json
 """
 from __future__ import annotations
 
@@ -10,19 +10,23 @@ import json
 import mutagen
 from datetime import datetime, timezone
 
-QUEUE_FILE = "podcast/publish_queue.json"
+
+def _queue_file(novel_dir: str) -> str:
+    return os.path.join(novel_dir, "podcast", "publish_queue.json")
 
 
-def _load() -> dict:
-    if os.path.exists(QUEUE_FILE):
-        with open(QUEUE_FILE) as f:
+def _load(novel_dir: str) -> dict:
+    path = _queue_file(novel_dir)
+    if os.path.exists(path):
+        with open(path) as f:
             return json.load(f)
     return {"published": [], "queued": [], "last_run": None}
 
 
-def _save(state: dict):
-    os.makedirs("podcast", exist_ok=True)
-    with open(QUEUE_FILE, "w") as f:
+def _save(state: dict, novel_dir: str):
+    path = _queue_file(novel_dir)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
         json.dump(state, f, indent=2)
 
 
@@ -39,10 +43,9 @@ def _read_chapter_title(voice_dir: str, mp3_filename: str) -> str | None:
     title = _extract_title_from_filename(mp3_filename)
     if title:
         return title
-    # Fallback: read first line of matching proofread .txt
     txt_name = mp3_filename.replace(".mp3", ".txt")
-    novel_slug = os.path.basename(os.path.dirname(os.path.abspath(voice_dir)))
-    proofread_path = os.path.join("output", novel_slug, "proofread", txt_name)
+    novel_dir = os.path.dirname(os.path.dirname(os.path.abspath(voice_dir)))
+    proofread_path = os.path.join(novel_dir, "proofread", txt_name)
     if os.path.exists(proofread_path):
         with open(proofread_path, encoding="utf-8") as f:
             first_line = f.readline().strip()
@@ -51,12 +54,12 @@ def _read_chapter_title(voice_dir: str, mp3_filename: str) -> str | None:
     return None
 
 
-def build_queue(voice_dir: str, novel_title: str):
+def build_queue(voice_dir: str, novel_title: str, novel_dir: str):
     """
     Scan voice_dir for all chapter mp3s and build the publish queue.
     Call this once after voice generation is complete.
     """
-    state = _load()
+    state = _load(novel_dir)
     published_files = {ep["file"] for ep in state["published"]}
 
     mp3s = sorted([
@@ -86,20 +89,20 @@ def build_queue(voice_dir: str, novel_title: str):
         ep_num += 1
 
     state["queued"].extend(new_queued)
-    _save(state)
+    _save(state, novel_dir)
     print(f"Queue built: {len(state['published'])} published, {len(state['queued'])} queued")
     return state
 
 
-def get_next_batch(n: int) -> list:
+def get_next_batch(n: int, novel_dir: str) -> list:
     """Return the next N episodes from the queue without marking them published."""
-    state = _load()
+    state = _load(novel_dir)
     return state["queued"][:n]
 
 
-def mark_published(files: list[str], archive_urls: dict):
+def mark_published(files: list[str], archive_urls: dict, novel_dir: str):
     """Mark a list of episode files as published with their Archive.org URLs."""
-    state = _load()
+    state = _load(novel_dir)
     published_files = {ep["file"] for ep in state["published"]}
 
     newly_published = []
@@ -109,7 +112,6 @@ def mark_published(files: list[str], archive_urls: dict):
         if ep["file"] in files and ep["file"] not in published_files:
             url = archive_urls.get(ep["file"], "")
             if not url:
-                # Upload failed — keep in queue for retry
                 remaining_queue.append(ep)
                 continue
             ep["published_at"] = datetime.now(timezone.utc).isoformat()
@@ -130,5 +132,5 @@ def mark_published(files: list[str], archive_urls: dict):
 
     state["queued"] = remaining_queue
     state["last_run"] = datetime.now(timezone.utc).isoformat()
-    _save(state)
+    _save(state, novel_dir)
     return newly_published

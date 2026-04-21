@@ -223,6 +223,30 @@ def export_batch_manifest(chapters: list[dict], out_dir: str,
         with open(os.path.join(ch_dir, "prompts.md"), "w", encoding="utf-8") as f:
             f.write("\n".join(ch_lines))
 
+        # Plain-text version for Higgsfield copy-paste (always overwritten)
+        sep = "=" * 64
+        dash = "-" * 64
+        txt_lines = [
+            f"CHAPTER {ch_num:03d} — {filename.replace('.txt', '')}",
+            sep,
+        ]
+        synopsis = ch.get("synopsis", "")
+        if synopsis:
+            txt_lines += [f"SYNOPSIS: {synopsis}", ""]
+        txt_lines += [f"Drop clips in: {os.path.abspath(out_dir)}", ""]
+        for b_idx, beat in enumerate(beats, 1):
+            txt_lines += [dash, f"BEAT {b_idx}: {beat['beat']}", ""]
+            for s_idx, shot_prompt in enumerate(beat["shots"], 1):
+                clip_name = f"chapter-{ch_num:03d}-beat-{b_idx}-shot-{s_idx}.mp4"
+                txt_lines += [
+                    f"  SHOT {s_idx}  →  {clip_name}",
+                    f"  {shot_prompt}",
+                    "",
+                ]
+        txt_lines.append(dash)
+        with open(os.path.join(ch_dir, "prompts.txt"), "w", encoding="utf-8") as f:
+            f.write("\n".join(txt_lines))
+
     readme_lines += ["", "---", f"*{already_done} of {total} clips already generated.*"]
     with open(os.path.join(batch_dir, "README.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(readme_lines))

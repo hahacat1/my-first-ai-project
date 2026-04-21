@@ -12,6 +12,7 @@ Audio files are publicly accessible via a direct URL.
 """
 
 import os
+from urllib.parse import quote
 
 
 def _get_ia():
@@ -52,7 +53,7 @@ def upload_episodes(episodes: list[dict], novel_slug: str, novel_title: str) -> 
         print(f"  Uploading {filename} to Archive.org...", end=" ", flush=True)
         try:
             ia.upload(identifier, files={filename: path}, metadata=metadata, checksum=True)
-            public_url = f"https://archive.org/download/{identifier}/{filename.replace(' ', '%20')}"
+            public_url = f"https://archive.org/download/{identifier}/{quote(filename)}"
             urls[filename] = public_url
             print("done")
         except Exception as e:

@@ -1,6 +1,9 @@
 """
 Builds Stable Diffusion prompts for character portraits and scene images.
-Optimized for dreamlike-anime model with per-novel art style support.
+Optimized for AnimagineXL with per-novel art style support.
+
+Prompt order (controls SD weight priority):
+  character appearance → clothing → art style → quality → lighting
 """
 
 ANIME_QUALITY_TAGS = (
@@ -27,46 +30,69 @@ SCENE_NEGATIVE = NEGATIVE_PROMPT + (
     ", no characters, empty scene, text, logo, ui elements"
 )
 
-# Default art style — overridden per novel via config art_style field
-DEFAULT_ART_STYLE = (
-    "anime style, vibrant colors, dynamic composition"
-)
+DEFAULT_ART_STYLE = "anime style, vibrant colors, dynamic composition"
 
-# Novel art style is injected at runtime via set_novel_style()
 _current_art_style = DEFAULT_ART_STYLE
 
 
 def set_novel_style(art_style: str):
-    """Call this before generating images to apply the novel's visual tone."""
     global _current_art_style
     _current_art_style = art_style
 
 
 def character_portrait_prompt(character: dict) -> tuple[str, str]:
-    """Returns (positive_prompt, negative_prompt) for a character portrait."""
+    """Returns (positive_prompt, negative_prompt) for a character portrait.
+
+    Priority order: appearance → clothing → style → quality → lighting
+    Character-specific details always come before global style tags.
+    """
     desc = character.get("description", "")
     tags = character.get("tags", "")
+    clothing = character.get("clothing", "")
+    eye_color = character.get("eye_color", "")
     role = character.get("role", "supporting")
 
     role_style = {
-        "protagonist": "confident posture, determined expression, hero aura",
-        "antagonist": "cold piercing gaze, intimidating presence, dark elegance",
+        "protagonist": "natural relaxed posture, soft determined expression",
+        "antagonist": "cold composed posture, controlled expression",
         "supporting": "expressive face, natural relaxed posture, warm presence",
         "minor": "natural expression, casual stance",
     }.get(role, "natural expression")
 
+    # master_tags is the single source of truth — use it if available
+    # Fall back to assembling from parts for seed/manual characters
+    master_tags = character.get("master_tags", "")
+    if master_tags:
+        appearance = master_tags
+    else:
+        appearance_parts = []
+        if desc:
+            appearance_parts.append(desc)
+        if eye_color:
+            appearance_parts.append(eye_color)
+        if clothing:
+            appearance_parts.append(clothing)
+        if tags:
+            appearance_parts.append(tags)
+        appearance = ", ".join(filter(None, appearance_parts))
+
     positive = (
-        f"{ANIME_QUALITY_TAGS}, "
-        f"{_current_art_style}, "
-        f"{tags + ', ' if tags else ''}"
-        f"{desc}, "
+        f"{appearance}, "
         f"{role_style}, "
-        f"looking at viewer, "
-        f"white background, full body character sheet, "
+        f"looking at viewer, white background, full body character sheet, "
         f"front view, consistent design, "
+        f"{_current_art_style}, "
+        f"{ANIME_QUALITY_TAGS}, "
         f"{PORTRAIT_LIGHTING}"
     )
-    return positive, NEGATIVE_PROMPT
+
+    # Character-specific negative — block wrong clothing types if defined
+    clothing_neg = character.get("clothing_negative", "")
+    negative = NEGATIVE_PROMPT
+    if clothing_neg:
+        negative = negative + f", {clothing_neg}"
+
+    return positive, negative
 
 
 def scene_image_prompt(scene_text: str, characters_in_scene: list[str] = None) -> tuple[str, str]:

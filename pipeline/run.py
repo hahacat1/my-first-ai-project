@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pipeline.config import NOVELS
 
-ALL_STAGES = ["scrape", "proofread", "enrich", "voice", "images", "batch", "video", "shorts", "publish", "podcast"]
+ALL_STAGES = ["scrape", "proofread", "enrich", "voice", "images", "soul", "batch", "video", "shorts", "publish", "podcast"]
 
 
 def output_path(slug: str, *parts) -> str:
@@ -133,10 +133,11 @@ def run_images(novel: dict):
     proofread_dir = output_path(slug, "proofread")
     chars_dir = output_path(slug, "characters")   # novels/<slug>/characters/<name>/
     scenes_dir = output_path(slug, "images", "scenes")
+    novel_dir = output_path(slug)
 
     print(f"\n[IMAGES] Extracting characters and generating images...")
     from images.character_extractor import extract_characters
-    from images.sd_generator import generate_character_portraits
+    from images.sd_generator import generate_character_portraits, generate_scene_images
     from images.prompts import set_novel_style, DEFAULT_ART_STYLE
 
     # Apply novel-specific art style (e.g. soft shojo for female audience)
@@ -146,6 +147,8 @@ def run_images(novel: dict):
     print(f"  Found {len(characters)} characters")
     print(f"  Review prompts in: {chars_dir}/<character_name>/prompt.txt before continuing")
     generate_character_portraits(characters, chars_dir)
+    generate_scene_images(proofread_dir, scenes_dir,
+                          characters=characters, novel_dir=novel_dir)
 
 
 def run_podcast(novel: dict, dump: int = 0, batch: int = 1):
@@ -190,7 +193,9 @@ def run_batch(novel: dict):
             if portrait:
                 primary_chars[ch["filename"]] = os.path.basename(os.path.dirname(portrait))
 
-    chapters_with_beats = write_director_prompts(chapters, prompts_dir, primary_chars)
+    chapters_with_beats = write_director_prompts(chapters, prompts_dir, primary_chars,
+                                                  art_style=novel.get("art_style", ""),
+                                                  characters=characters)
     export_batch_manifest(chapters_with_beats, clips_dir, chars_dir=chars_dir, novel_dir=novel_dir)
 
 
@@ -228,7 +233,9 @@ def run_video(novel: dict):
                 primary_chars[ch["filename"]] = os.path.basename(os.path.dirname(portrait))
 
     # Generate storyboard prompts (cached per chapter, reviewable before generation)
-    chapters_with_beats = write_director_prompts(chapters, prompts_dir, primary_chars)
+    chapters_with_beats = write_director_prompts(chapters, prompts_dir, primary_chars,
+                                                  art_style=novel.get("art_style", ""),
+                                                  characters=characters)
 
     # Generate video clips (resumable — skips already-done clips)
     compose_chapters(chapters_with_beats, clips_dir, chars_dir=chars_dir, novel_dir=novel_dir)
@@ -331,12 +338,20 @@ def run_publish(novel: dict):
     print(f"\n[PUBLISH] Done — {uploaded_full} full episode(s), {uploaded_shorts} short(s) published.")
 
 
+def run_soul(novel: dict):
+    from video.soul_writer import write_soul
+    slug = novel["slug"]
+    novel_dir = output_path(slug)
+    write_soul(novel, novel_dir)
+
+
 STAGE_RUNNERS = {
     "scrape": run_scrape,
     "proofread": run_proofread,
     "enrich": run_enrich,
     "voice": run_voice,
     "images": run_images,
+    "soul": run_soul,
     "batch": run_batch,
     "video": run_video,
     "shorts": run_shorts,

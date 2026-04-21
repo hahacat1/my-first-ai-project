@@ -1,0 +1,165 @@
+IP-ADAPTER FACEID — SYSTEM RULES v2
+=====================================
+For review, feedback, and improvement.
+
+IP-Adapter FaceID is the primary face consistency tool in this pipeline.
+It uses InsightFace to extract face embeddings from a reference portrait,
+then injects those embeddings into the UNet attention layers to guide
+generation toward the same face identity — without any LoRA training.
+
+This is the first layer of face consistency in this pipeline.
+A future LoRA training layer (15-50 images, 1000-3000 steps) would be the second.
+
+================================================================
+WHY FACE CONSISTENCY MATTERS FOR THIS PIPELINE
+================================================================
+
+Without IP-Adapter:
+  Each portrait.png generated for the same character looks different.
+  Different lighting → SD samples differently → hair/eye/face shape drifts.
+  Result: Leonardo in chapter 1 and Leonardo in chapter 150 look like different people.
+
+With IP-Adapter FaceID:
+  The reference face embedding anchors generation toward the same identity.
+  Hair color, eye shape, face structure, skin tone stay consistent.
+  Result: visually coherent character across all 300 chapters.
+
+================================================================
+PIPELINE RULES (follow exactly)
+================================================================
+
+RULE 1 — FIRST GENERATION: NO FACEID
+  When portrait.png does not exist yet → use standard workflow.
+  FaceID requires a reference face. There is no reference on first generation.
+
+RULE 2 — REGENERATION: USE FACEID
+  When force=True AND portrait.png already exists:
+  → Use IP-Adapter FaceID workflow with the existing portrait.png as reference.
+  → Parameters: face_weight=0.80, weight_type="linear"
+  Use case: user improved prompt.txt, wants better quality while keeping the same face.
+
+RULE 3 — FACEID IS FOR PORTRAITS ONLY (current)
+  Scene images still use silhouette mode (character master_tags at 0.4 weight).
+  FaceID is not applied to scene images until full-body character scene mode is added.
+
+RULE 4 — GRACEFUL FALLBACK (two levels)
+  Level 1: IP-Adapter plugin not installed → silently use standard workflow.
+  Level 2: Reference upload fails → silently use standard workflow, print warning.
+  Pipeline never blocks on IP-Adapter availability.
+
+RULE 5 — RECOMMENDED DEFAULTS
+  face_weight: 0.80
+  weight_type: "linear" (use "ease in" for softer blending if face is over-anchored)
+  Increase to 0.90+ only if the character face is drifting badly across generations.
+  Never exceed 0.95 — face looks traced from reference, loses prompt flexibility.
+
+================================================================
+HOW IP-ADAPTER FACEID WORKS (technically)
+================================================================
+
+1. InsightFace extracts a 512-dim face embedding from the reference image.
+2. The embedding is projected into the CLIP embedding space via a learned adapter.
+3. The projected embedding is injected into the UNet's cross-attention layers
+   at the specified weight.
+4. The KSampler then generates an image that attends to BOTH the text prompt
+   AND the face embedding — face identity anchors the generation.
+
+Key parameter: face_weight
+  - Too high (>0.95): face looks traced from reference, loses prompt flexibility
+  - Too low (<0.5): face drifts away from reference, consistency weakens
+  - Sweet spot: 0.75–0.85 for this pipeline's use case
+
+================================================================
+COMFYUI NODES REQUIRED
+================================================================
+
+Plugin: https://github.com/cubiq/ComfyUI_IPAdapter_plus
+
+Nodes used:
+  - IPAdapterModelLoader  — loads ip-adapter-faceid-plusv2_sd15.bin
+  - InsightFaceLoader     — loads InsightFace for face embedding extraction
+  - LoadImage             — loads the uploaded reference portrait
+  - IPAdapterFaceID       — applies face embedding to the UNet model
+
+Python dependencies (install in ComfyUI's Python environment):
+  pip install insightface onnxruntime
+
+Model files:
+  SD 1.5 base (Anything V5): ip-adapter-faceid-plusv2_sd15.bin
+  SDXL base (AnimagineXL):   ip-adapter-faceid-plusv2_sdxl.bin
+  Place in: ComfyUI/models/ipadapter/
+  Download from: https://huggingface.co/h94/IP-Adapter-FaceID
+
+================================================================
+WORKFLOW NODE GRAPH (FaceID path)
+================================================================
+
+CheckpointLoaderSimple ──┐
+                         ├──► IPAdapterFaceID ──► KSampler ──► VAEDecode ──► SaveImage
+IPAdapterModelLoader ────┤         ▲
+InsightFaceLoader ───────┘         │
+LoadImage (ref portrait) ──────────┘
+
+CLIPTextEncode (positive) ──► KSampler
+CLIPTextEncode (negative) ──► KSampler
+EmptyLatentImage ────────────► KSampler
+
+================================================================
+DETECTION: IS IP-ADAPTER INSTALLED?
+================================================================
+
+The pipeline checks before attempting FaceID:
+  GET /object_info/IPAdapterFaceID → 200 = installed, any error = not installed
+
+This check adds <50ms overhead and prevents silent failures.
+If not installed: standard workflow runs, no error to the user.
+
+================================================================
+UPLOAD FLOW: REFERENCE IMAGE → COMFYUI
+================================================================
+
+1. _upload_to_comfy_input(portrait.png)
+   POST /upload/image → ComfyUI stores in its input/ folder
+   Returns: filename string (e.g. "portrait.png" or "portrait_1.png" if collision)
+
+2. _build_faceid_workflow(..., ref_image_name="portrait.png")
+   LoadImage node uses this filename to load from ComfyUI's input/ folder
+
+3. After generation: portrait.png is NOT deleted from ComfyUI input/
+   (harmless — ComfyUI manages its own cleanup)
+
+================================================================
+FILES INVOLVED
+================================================================
+
+images/sd_generator.py
+  _build_workflow()            — standard KSampler workflow (no face reference)
+  _build_faceid_workflow()     — IP-Adapter FaceID workflow
+  _upload_to_comfy_input()     — uploads reference portrait to ComfyUI input/
+  _check_ipadapter_available() — detects plugin via /object_info/IPAdapterFaceID
+  _generate_image()            — routes to FaceID or standard; graceful fallback
+  generate_character_portraits(force=False) — force=True triggers FaceID on regen
+
+================================================================
+SETUP CHECKLIST (one-time)
+================================================================
+
+[ ] Install ComfyUI_IPAdapter_plus plugin
+[ ] pip install insightface onnxruntime (in ComfyUI's Python env)
+[ ] Download ip-adapter-faceid-plusv2_sd15.bin → ComfyUI/models/ipadapter/
+[ ] Verify: GET http://localhost:8188/object_info/IPAdapterFaceID returns 200
+[ ] Test: run --stages images --force on one character, confirm [FaceID] tag in output
+
+================================================================
+WHAT TO IMPROVE IN v3 (TODO)
+================================================================
+- Add weight_type options to config: "linear" (default), "ease in", "ease out"
+  ease variants give softer face influence, better for expressive shots
+- Test face_weight 0.75 vs 0.85 across SD models (AnimagineXL vs Anything V5)
+- Switch model file automatically: sd15 for Anything V5, sdxl for AnimagineXL 4.0
+- Add face embedding CACHE: extract embedding once, reuse across all chapter portraits
+  (currently re-extracts on every generation — wasteful for 300 chapters)
+- Add per-character face_weight override in characters.json
+- Add a --faceid-weight CLI argument for per-run tuning without editing config
+- Future case 2: when scene images show characters (not just silhouettes),
+  inject FaceID at low weight (0.4–0.5) for face-consistent background characters

@@ -3,8 +3,8 @@
 Podcast publisher — uploads batch to Archive.org, updates RSS, pushes to GitHub Pages.
 
 Usage:
-    python podcast/publisher.py --novel if-you-dont-become-the-main-character-youll-die --dump 10   # initial 10-episode dump
-    python podcast/publisher.py --novel if-you-dont-become-the-main-character-youll-die --batch 1   # daily 1 episode
+    python podcast/publisher.py --novel if-you-dont-become-the-main-character-youll-die --dump 10
+    python podcast/publisher.py --novel if-you-dont-become-the-main-character-youll-die --batch 1
 
 Run automatically at 8am via cron (set up with: python podcast/publisher.py --install-cron)
 """
@@ -24,12 +24,13 @@ from podcast.rss_generator import generate_rss
 
 def publish_batch(novel_slug: str, n: int):
     novel = NOVELS[novel_slug]
+    novel_dir = f"novels/{novel_slug}"
     voice_dir = f"novels/{novel_slug}/voice"
 
     print(f"Building publish queue from: {voice_dir}")
-    build_queue(voice_dir, novel["title"])
+    build_queue(voice_dir, novel["title"], novel_dir)
 
-    batch = get_next_batch(n)
+    batch = get_next_batch(n, novel_dir)
     if not batch:
         print("Nothing in queue — all episodes published or voice not generated yet.")
         return
@@ -38,7 +39,6 @@ def publish_batch(novel_slug: str, n: int):
     for ep in batch:
         print(f"  {ep['file']} → {ep['title']}")
 
-    # Upload to Archive.org
     print("\nUploading to Archive.org...")
     urls = upload_episodes(batch, novel_slug, novel["title"])
 
@@ -46,14 +46,11 @@ def publish_batch(novel_slug: str, n: int):
         print("Upload failed — check Archive.org credentials (run: ia configure)")
         return
 
-    # Mark as published
-    mark_published([ep["file"] for ep in batch], urls)
+    mark_published([ep["file"] for ep in batch], urls, novel_dir)
 
-    # Regenerate RSS feed
     print("\nUpdating RSS feed...")
-    generate_rss()
+    generate_rss(novel_dir)
 
-    # Push to GitHub Pages
     print("\nPushing to GitHub Pages...")
     _push_github()
 
@@ -81,7 +78,6 @@ def install_cron():
         f"python3 {script_path} --novel if-you-dont-become-the-main-character-youll-die --batch 1 "
         f">> {project_dir}/podcast/cron.log 2>&1"
     )
-    # 8am EDT = 12:00 UTC, 8pm EDT = 00:00 UTC
     cron_morning = f"0 12 * * * {base_cmd}"
     cron_evening = f"0 0 * * * {base_cmd}"
 

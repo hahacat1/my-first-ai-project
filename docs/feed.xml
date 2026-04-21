@@ -5,7 +5,7 @@
   xmlns:content="http://purl.org/rss/1.0/modules/content/">
 <channel>
   <title>If You Don't Become the Main Character, You'll Die</title>
-  <description>AI-narrated audiobook of the top-ranked Korean web novel.</description>
+  <description>An AI-narrated audiobook adaptation of the hit Korean web novel. A Korean man wakes up trapped inside a BL romance fantasy novel — as a background extra destined to die. To survive, he must make sure the main characters fall in love. New episodes daily. Perfect for fans of isekai, manhwa, BL romance, and Korean web novels.</description>
   <language>en-us</language>
   <link>https://hahacat1.github.io/my-first-ai-project</link>
   <atom:link href="https://hahacat1.github.io/my-first-ai-project/feed.xml" rel="self" type="application/rss+xml"/>
@@ -19,12 +19,15 @@
   <itunes:category text="Arts">
     <itunes:category text="Books"/>
   </itunes:category>
+  <itunes:subtitle>Survive the story. Don't become the main character.</itunes:subtitle>
+  <itunes:keywords>korean web novel, BL romance, isekai, manhwa, audiobook, fantasy, romance, light novel, webnovel, AI audiobook, Korean fiction, BL fantasy, otome isekai</itunes:keywords>
   <itunes:explicit>false</itunes:explicit>
   <itunes:type>episodic</itunes:type>
   
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 8 A necklace and some dangerous secrets</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 8 A necklace and some dangerous secrets</description>
+    <title>Episode 8 A necklace and some dangerous secrets</title>
+    <description>In the shadowy alleys of a forgotten town, you stumble upon secrets that could either make or break your life. A simple purchase at a market stall unravels a web of noble deceit and hidden loyalties, where every word spoken might be a trap—or your only chance to survive. Are you brave enough to uncover the truth behind Lord Lopez’s sudden interest in an ancient moonstone necklace?</description>
+    <itunes:summary>In the shadowy alleys of a forgotten town, you stumble upon secrets that could either make or break your life. A simple purchase at a market stall unravels a web of noble deceit and hidden loyalties, where every word spoken might be a trap—or your only chance to survive. Are you brave enough to uncover the truth behind Lord Lopez’s sudden interest in an ancient moonstone necklace?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20008%20-%20Episode%208%20A%20necklace%20and%20some%20dangerous%20secrets.mp3" length="7031637" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20008%20-%20Episode%208%20A%20necklace%20and%20some%20dangerous%20secrets.mp3</guid>
     <pubDate>Tue, 21 Apr 2026 15:53:47 +0000</pubDate>
@@ -33,8 +36,9 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 7</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 7</description>
+    <title>Episode 7</title>
+    <description>In a world where every detail could be a clue to survival, a young investigator uncovers a web of subtle signs leading to an impending visit by a powerful noble. But as she pieces together the fragments—cheap cuts of meat, unusual purchases from servants—the stakes grow higher with each revelation. Can she decipher the cryptic signals before it's too late, or will she become just another casualty in this game of hidden agendas?</description>
+    <itunes:summary>In a world where every detail could be a clue to survival, a young investigator uncovers a web of subtle signs leading to an impending visit by a powerful noble. But as she pieces together the fragments—cheap cuts of meat, unusual purchases from servants—the stakes grow higher with each revelation. Can she decipher the cryptic signals before it's too late, or will she become just another casualty in this game of hidden agendas?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20007%20-%20Episode%207.mp3" length="6401037" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20007%20-%20Episode%207.mp3</guid>
     <pubDate>Tue, 21 Apr 2026 15:53:47 +0000</pubDate>
@@ -43,8 +47,9 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 6 A meal breaks down suspicion's walls</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 6 A meal breaks down suspicion's walls</description>
+    <title>Episode 6 A meal breaks down suspicion's walls</title>
+    <description>In a grim alleyway, food becomes the unexpected key to breaking through years of suspicion and distrust. As strangers gather around a basket of sustenance, one traveler offers a deal that could either save or doom them all—revealing secrets that threaten their very survival in this harsh world. Can they trust the innkeeper’s seemingly innocent proposition?</description>
+    <itunes:summary>In a grim alleyway, food becomes the unexpected key to breaking through years of suspicion and distrust. As strangers gather around a basket of sustenance, one traveler offers a deal that could either save or doom them all—revealing secrets that threaten their very survival in this harsh world. Can they trust the innkeeper’s seemingly innocent proposition?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20006%20-%20Episode%206%20A%20meal%20breaks%20down%20suspicion%27s%20walls.mp3" length="5918637" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20006%20-%20Episode%206%20A%20meal%20breaks%20down%20suspicion%27s%20walls.mp3</guid>
     <pubDate>Tue, 21 Apr 2026 05:09:51 +0000</pubDate>
@@ -53,8 +58,9 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 5 The Afterlife of the Good Person</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 5 The Afterlife of the Good Person</description>
+    <title>Episode 5 The Afterlife of the Good Person</title>
+    <description>In a world where you can only become the main character by changing your actions, one man finds himself trapped in an endless cycle of repetition—where every coin he collects seems to be a lifeline and a curse. As dawn breaks and he returns to the inn with a pouch heavier than his worries, Leonardo must decide: is it worth risking everything to finally claim his narrative destiny—or will he be forever stuck as a mere observer?</description>
+    <itunes:summary>In a world where you can only become the main character by changing your actions, one man finds himself trapped in an endless cycle of repetition—where every coin he collects seems to be a lifeline and a curse. As dawn breaks and he returns to the inn with a pouch heavier than his worries, Leonardo must decide: is it worth risking everything to finally claim his narrative destiny—or will he be forever stuck as a mere observer?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20005%20-%20Episode%205%20The%20Afterlife%20of%20the%20Good%20Person.mp3" length="6008181" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20005%20-%20Episode%205%20The%20Afterlife%20of%20the%20Good%20Person.mp3</guid>
     <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
@@ -63,8 +69,9 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 4 Whispers and toasts to a fallen hero</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 4 Whispers and toasts to a fallen hero</description>
+    <title>Episode 4 Whispers and toasts to a fallen hero</title>
+    <description>In the shadow of a tragic hero's death, whispers of conspiracy and betrayal swirl through the halls of power. As mourners toast to a fallen legend, one patron's hidden agenda threatens to unravel the very fabric of the kingdom—a tale where loyalty is tested, and only the true main character can survive.</description>
+    <itunes:summary>In the shadow of a tragic hero's death, whispers of conspiracy and betrayal swirl through the halls of power. As mourners toast to a fallen legend, one patron's hidden agenda threatens to unravel the very fabric of the kingdom—a tale where loyalty is tested, and only the true main character can survive.</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20004%20-%20Episode%204%20Whispers%20and%20toasts%20to%20a%20fallen%20hero.mp3" length="6663261" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20004%20-%20Episode%204%20Whispers%20and%20toasts%20to%20a%20fallen%20hero.mp3</guid>
     <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
@@ -73,8 +80,13 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 3 The Inn Becomes an Information Guild</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 3 The Inn Becomes an Information Guild</description>
+    <title>Episode 3 The Inn Becomes an Information Guild</title>
+    <description>You’re not just an innkeeper anymore—you’re a master manipulator, weaving through secrets like a shadow. As your "Innkeeper’s Insight" ability reveals hidden truths, you must decide: play the supporting role or become the star? One wrong move could mean death in this world where every character has a secret agenda.
+
+The inn is no longer just a gathering place—it's a labyrinth of power and intrigue. With information at your fingertips, you’re poised to rewrite your fate. But as alliances shift and enemies emerge, can you navigate the treacherous waters without becoming collateral damage?</description>
+    <itunes:summary>You’re not just an innkeeper anymore—you’re a master manipulator, weaving through secrets like a shadow. As your "Innkeeper’s Insight" ability reveals hidden truths, you must decide: play the supporting role or become the star? One wrong move could mean death in this world where every character has a secret agenda.
+
+The inn is no longer just a gathering place—it's a labyrinth of power and intrigue. With information at your fingertips, you’re poised to rewrite your fate. But as alliances shift and enemies emerge, can you navigate the treacherous waters without becoming collateral damage?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20003%20-%20Episode%203%20The%20Inn%20Becomes%20an%20Information%20Guild.mp3" length="4795317" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20003%20-%20Episode%203%20The%20Inn%20Becomes%20an%20Information%20Guild.mp3</guid>
     <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
@@ -83,8 +95,9 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 2 Securing My Home, Success</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 2 Securing My Home, Success</description>
+    <title>Episode 2 Securing My Home, Success</title>
+    <description>In a world where your "scenario importance" determines your very existence, one misstep could mean eternal erasure—worse than death itself. When Leonardo, lost in a drunken stupor, finds himself face-to-face with his own demise, the stakes are higher than he ever imagined. Can he reclaim his true identity before it's too late, or will he vanish into nothingness forever?</description>
+    <itunes:summary>In a world where your "scenario importance" determines your very existence, one misstep could mean eternal erasure—worse than death itself. When Leonardo, lost in a drunken stupor, finds himself face-to-face with his own demise, the stakes are higher than he ever imagined. Can he reclaim his true identity before it's too late, or will he vanish into nothingness forever?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20002%20-%20Episode%202%20Securing%20My%20Home%2C%20Success.mp3" length="5539125" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20002%20-%20Episode%202%20Securing%20My%20Home%2C%20Success.mp3</guid>
     <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
@@ -93,8 +106,9 @@
     <itunes:episodeType>full</itunes:episodeType>
   </item>
   <item>
-    <title>If You Don't Become the Main Character, You'll Die — Episode 1 The First Scene of the Stage</title>
-    <description>If You Don't Become the Main Character, You'll Die — Episode 1 The First Scene of the Stage</description>
+    <title>Episode 1 The First Scene of the Stage</title>
+    <description>You’ve just died, and now you're thrust into a world where life is nothing more than a meticulously scripted play. As an insignificant extra with no lines, the only way to survive is to somehow become the star of the show—or risk being erased from existence entirely. Can you find your purpose in this cosmic stage, or will you fade into obscurity forever?</description>
+    <itunes:summary>You’ve just died, and now you're thrust into a world where life is nothing more than a meticulously scripted play. As an insignificant extra with no lines, the only way to survive is to somehow become the star of the show—or risk being erased from existence entirely. Can you find your purpose in this cosmic stage, or will you fade into obscurity forever?</itunes:summary>
     <enclosure url="https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20001%20-%20Episode%201%20The%20First%20Scene%20of%20the%20Stage.mp3" length="6572205" type="audio/mpeg"/>
     <guid isPermaLink="false">https://archive.org/download/webnovel-if-you-dont-become-the-main-character-youll-die-audiobook/Chapter%20001%20-%20Episode%201%20The%20First%20Scene%20of%20the%20Stage.mp3</guid>
     <pubDate>Mon, 20 Apr 2026 07:19:27 +0000</pubDate>
